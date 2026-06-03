@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  background: #fbfaf8;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, rgba(247, 239, 231, 0.94), rgba(255, 255, 255, 0.94)),
+    url("/salon-bg.png");
+  background-size: cover;
+  background-attachment: fixed;
+  color: #1f2933;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blush/30 focus:border-blush;
+}
