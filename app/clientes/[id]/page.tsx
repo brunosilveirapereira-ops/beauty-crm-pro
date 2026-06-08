@@ -2,14 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ColorHistoryManager } from "@/components/color-history-manager";
 import { PageHeader } from "@/components/page-header";
 import { VisitHistoryManager } from "@/components/visit-history-manager";
-import { getCustomer, getVisitHistory } from "@/lib/data";
+import { getColorHistory, getCustomer, getVisitHistory } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
-  const [customer, visits] = await Promise.all([getCustomer(params.id), getVisitHistory(params.id)]);
+  const [customer, visits, colors] = await Promise.all([getCustomer(params.id), getVisitHistory(params.id), getColorHistory(params.id)]);
 
   if (!customer) notFound();
 
@@ -44,14 +45,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
         <p className="mt-1 text-sm text-stone-500">Secção futura para registar produtos utilizados em cada atendimento.</p>
       </section>
 
-      <section className="mt-4 rounded-lg border border-dashed border-stone-300 bg-white/80 p-5">
-        <h2 className="text-base font-semibold text-ink">Histórico de Coloração</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <Info label="Marca da tinta" value={null} />
-          <Info label="Cor utilizada" value={null} />
-          <Info label="Observações" value={null} />
-        </div>
-      </section>
+      <ColorHistoryManager customer={customer} initialColors={colors} />
     </AppShell>
   );
 }
