@@ -64,8 +64,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link href="/dashboard" className="font-semibold text-ink">
               Beauty CRM Pro
             </Link>
-            <Link href="/clientes" className="rounded-md bg-ink px-3 py-2 text-sm font-medium text-white">
-              Cliente
+            <Link href="/agenda" className="rounded-md bg-ink px-3 py-2 text-sm font-medium text-white">
+              Agenda
             </Link>
           </div>
           <nav className="mt-3 grid grid-cols-5 gap-1">
