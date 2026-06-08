@@ -8,10 +8,18 @@ create table if not exists public.customers (
   instagram text,
   birth_date date,
   last_visit date,
+  last_visit_date date,
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.customers
+  add column if not exists last_visit_date date;
+
+update public.customers
+set last_visit_date = coalesce(last_visit_date, last_visit)
+where last_visit is not null;
 
 create table if not exists public.service_history (
   id uuid primary key default gen_random_uuid(),
@@ -26,11 +34,26 @@ create table if not exists public.service_history (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.visit_history (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.customers(id) on delete cascade,
+  service_id uuid references public.service_history(id) on delete set null,
+  service_name text not null,
+  professional_name text,
+  visit_date date not null,
+  value numeric(10, 2) not null default 0,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists customers_last_visit_idx on public.customers(last_visit);
+create index if not exists customers_last_visit_date_idx on public.customers(last_visit_date);
 create index if not exists customers_birth_date_idx on public.customers(birth_date);
 create index if not exists customers_created_at_idx on public.customers(created_at);
 create index if not exists service_history_date_idx on public.service_history(date);
 create index if not exists service_history_customer_id_idx on public.service_history(customer_id);
+create index if not exists visit_history_customer_id_idx on public.visit_history(customer_id);
+create index if not exists visit_history_visit_date_idx on public.visit_history(visit_date);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -60,7 +83,9 @@ language plpgsql
 as $$
 begin
   update public.customers
-  set last_visit = greatest(coalesce(last_visit, new.date), new.date)
+  set
+    last_visit = greatest(coalesce(last_visit, new.date), new.date),
+    last_visit_date = greatest(coalesce(last_visit_date, new.date), new.date)
   where id = new.customer_id;
 
   return new;
@@ -73,8 +98,30 @@ after insert or update of date, customer_id on public.service_history
 for each row
 execute function public.sync_customer_last_visit();
 
+create or replace function public.sync_customer_last_visit_from_visit_history()
+returns trigger
+language plpgsql
+as $$
+begin
+  update public.customers
+  set
+    last_visit = greatest(coalesce(last_visit, new.visit_date), new.visit_date),
+    last_visit_date = greatest(coalesce(last_visit_date, new.visit_date), new.visit_date)
+  where id = new.customer_id;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists visit_history_sync_customer_last_visit on public.visit_history;
+create trigger visit_history_sync_customer_last_visit
+after insert or update of visit_date, customer_id on public.visit_history
+for each row
+execute function public.sync_customer_last_visit_from_visit_history();
+
 alter table public.customers enable row level security;
 alter table public.service_history enable row level security;
+alter table public.visit_history enable row level security;
 
 drop policy if exists "Authenticated users can read customers" on public.customers;
 drop policy if exists "Authenticated users can insert customers" on public.customers;
@@ -125,6 +172,32 @@ create policy "Authenticated users can update service history"
 
 create policy "Authenticated users can delete service history"
   on public.service_history for delete
+  to authenticated
+  using (true);
+
+drop policy if exists "Authenticated users can read visit history" on public.visit_history;
+drop policy if exists "Authenticated users can insert visit history" on public.visit_history;
+drop policy if exists "Authenticated users can update visit history" on public.visit_history;
+drop policy if exists "Authenticated users can delete visit history" on public.visit_history;
+
+create policy "Authenticated users can read visit history"
+  on public.visit_history for select
+  to authenticated
+  using (true);
+
+create policy "Authenticated users can insert visit history"
+  on public.visit_history for insert
+  to authenticated
+  with check (true);
+
+create policy "Authenticated users can update visit history"
+  on public.visit_history for update
+  to authenticated
+  using (true)
+  with check (true);
+
+create policy "Authenticated users can delete visit history"
+  on public.visit_history for delete
   to authenticated
   using (true);
 

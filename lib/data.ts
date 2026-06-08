@@ -2,7 +2,7 @@ import { demoCustomers, demoServices } from "./mock-data";
 import { daysSince, isAtRisk } from "./risk";
 import { getSupabaseServerClient } from "./supabase-server";
 import { isSupabaseConfigured } from "./supabase";
-import type { Customer, DashboardStats, ServiceHistory } from "./types";
+import type { Customer, DashboardStats, ServiceHistory, VisitHistory } from "./types";
 
 export { daysSince, isAtRisk };
 
@@ -22,6 +22,24 @@ export async function getCustomers(): Promise<Customer[]> {
   }
 
   return data as Customer[];
+}
+
+export async function getCustomer(customerId: string): Promise<Customer | null> {
+  const supabase = getSupabaseServerClient();
+  if (!isSupabaseConfigured || !supabase) {
+    console.info("[Beauty CRM Pro] Modo local: lendo cliente demo.");
+    return demoCustomers.find((customer) => customer.id === customerId) ?? null;
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo cliente de public.customers.", { customerId });
+
+  const { data, error } = await supabase.from("customers").select("*").eq("id", customerId).single();
+  if (error) {
+    console.error("[Beauty CRM Pro] Erro ao ler cliente do Supabase:", error);
+    return null;
+  }
+
+  return data as Customer;
 }
 
 export async function getServices(): Promise<ServiceHistory[]> {
@@ -44,6 +62,29 @@ export async function getServices(): Promise<ServiceHistory[]> {
   }
 
   return data as ServiceHistory[];
+}
+
+export async function getVisitHistory(customerId: string): Promise<VisitHistory[]> {
+  const supabase = getSupabaseServerClient();
+  if (!isSupabaseConfigured || !supabase) {
+    console.info("[Beauty CRM Pro] Modo local: sem historico de visitas Supabase.");
+    return [];
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo visitas de public.visit_history.", { customerId });
+
+  const { data, error } = await supabase
+    .from("visit_history")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("visit_date", { ascending: false });
+
+  if (error) {
+    console.error("[Beauty CRM Pro] Erro ao ler historico de visitas do Supabase:", error);
+    return [];
+  }
+
+  return data as VisitHistory[];
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {

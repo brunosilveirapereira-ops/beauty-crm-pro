@@ -4,6 +4,7 @@
 
 alter table public.customers enable row level security;
 alter table public.service_history enable row level security;
+alter table public.visit_history enable row level security;
 
 drop policy if exists "Dev anon can read customers" on public.customers;
 drop policy if exists "Dev anon can insert customers" on public.customers;
@@ -54,5 +55,31 @@ create policy "Dev anon can update service history"
 
 create policy "Dev anon can delete service history"
   on public.service_history for delete
+  to anon
+  using (true);
+
+drop policy if exists "Dev anon can read visit history" on public.visit_history;
+drop policy if exists "Dev anon can insert visit history" on public.visit_history;
+drop policy if exists "Dev anon can update visit history" on public.visit_history;
+drop policy if exists "Dev anon can delete visit history" on public.visit_history;
+
+create policy "Dev anon can read visit history"
+  on public.visit_history for select
+  to anon
+  using (true);
+
+create policy "Dev anon can insert visit history"
+  on public.visit_history for insert
+  to anon
+  with check (true);
+
+create policy "Dev anon can update visit history"
+  on public.visit_history for update
+  to anon
+  using (true)
+  with check (true);
+
+create policy "Dev anon can delete visit history"
+  on public.visit_history for delete
   to anon
   using (true);

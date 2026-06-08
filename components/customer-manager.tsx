@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -119,7 +121,11 @@ export function CustomerManager({ initialCustomers }: { initialCustomers: Custom
             <tbody className="divide-y divide-stone-100">
               {customers.map((customer) => (
                 <tr key={customer.id}>
-                  <td className="py-3 font-medium text-ink">{customer.name}</td>
+                  <td className="py-3 font-medium text-ink">
+                    <Link className="hover:text-blush hover:underline" href={`/clientes/${customer.id}` as Route}>
+                      {customer.name}
+                    </Link>
+                  </td>
                   <td className="py-3 text-stone-600">{customer.whatsapp}</td>
                   <td className="py-3 text-stone-600">{customer.instagram}</td>
                   <td className="py-3 text-stone-600">{customer.birth_date}</td>
