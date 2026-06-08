@@ -3,15 +3,18 @@ import { DashboardRecoveryPreview } from "@/components/dashboard-recovery-previe
 import { DashboardStatsGrid } from "@/components/dashboard-stats-grid";
 import { DataModeIndicator } from "@/components/data-mode-indicator";
 import { PageHeader } from "@/components/page-header";
-import { getCustomers, getServices } from "@/lib/data";
+import { TodayAppointments } from "@/components/today-appointments";
+import { getAppointmentsByDate, getCustomers, getServices } from "@/lib/data";
 
 const currency = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [customers, services] = await Promise.all([getCustomers(), getServices()]);
+  const today = new Date().toISOString().slice(0, 10);
+  const [customers, services, appointments] = await Promise.all([getCustomers(), getServices(), getAppointmentsByDate(today)]);
   const recentServices = services.slice(0, 5);
+  const upcomingAppointments = appointments.filter((appointment) => appointment.appointment_time.slice(0, 5) >= new Date().toTimeString().slice(0, 5)).slice(0, 5);
 
   return (
     <AppShell>
@@ -51,6 +54,10 @@ export default async function DashboardPage() {
         </div>
 
         <DashboardRecoveryPreview initialCustomers={customers} initialServices={services} />
+      </section>
+
+      <section className="mt-6">
+        <TodayAppointments appointments={upcomingAppointments} />
       </section>
     </AppShell>
   );

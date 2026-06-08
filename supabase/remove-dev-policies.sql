@@ -14,3 +14,13 @@ drop policy if exists "Dev anon can read visit history" on public.visit_history;
 drop policy if exists "Dev anon can insert visit history" on public.visit_history;
 drop policy if exists "Dev anon can update visit history" on public.visit_history;
 drop policy if exists "Dev anon can delete visit history" on public.visit_history;
+
+drop policy if exists "Dev anon can read color history" on public.color_history;
+drop policy if exists "Dev anon can insert color history" on public.color_history;
+drop policy if exists "Dev anon can update color history" on public.color_history;
+drop policy if exists "Dev anon can delete color history" on public.color_history;
+
+drop policy if exists "Dev anon can read appointments" on public.appointments;
+drop policy if exists "Dev anon can insert appointments" on public.appointments;
+drop policy if exists "Dev anon can update appointments" on public.appointments;
+drop policy if exists "Dev anon can delete appointments" on public.appointments;

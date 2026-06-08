@@ -37,6 +37,20 @@ export type ColorHistory = {
   created_at: string;
 };
 
+export type Appointment = {
+  id: string;
+  customer_id: string;
+  service: string;
+  professional: string;
+  appointment_date: string;
+  appointment_time: string;
+  duration_minutes: number;
+  notes: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  customer?: Pick<Customer, "id" | "name" | "phone" | "whatsapp"> | null;
+};
+
 export type DashboardStats = {
   totalCustomers: number;
   atRiskCustomers: number;

@@ -46,6 +46,30 @@ create table if not exists public.visit_history (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.color_history (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.customers(id) on delete cascade,
+  color_date date not null,
+  dye_brand text not null,
+  color_used text not null,
+  oxidant text,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.appointments (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.customers(id) on delete cascade,
+  service text not null,
+  professional text not null,
+  appointment_date date not null,
+  appointment_time time not null,
+  duration_minutes integer not null default 60,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists customers_last_visit_idx on public.customers(last_visit);
 create index if not exists customers_last_visit_date_idx on public.customers(last_visit_date);
 create index if not exists customers_birth_date_idx on public.customers(birth_date);
@@ -54,6 +78,10 @@ create index if not exists service_history_date_idx on public.service_history(da
 create index if not exists service_history_customer_id_idx on public.service_history(customer_id);
 create index if not exists visit_history_customer_id_idx on public.visit_history(customer_id);
 create index if not exists visit_history_visit_date_idx on public.visit_history(visit_date);
+create index if not exists color_history_customer_id_idx on public.color_history(customer_id);
+create index if not exists color_history_color_date_idx on public.color_history(color_date);
+create index if not exists appointments_customer_id_idx on public.appointments(customer_id);
+create index if not exists appointments_date_time_idx on public.appointments(appointment_date, appointment_time);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -74,6 +102,12 @@ execute function public.set_updated_at();
 drop trigger if exists service_history_set_updated_at on public.service_history;
 create trigger service_history_set_updated_at
 before update on public.service_history
+for each row
+execute function public.set_updated_at();
+
+drop trigger if exists appointments_set_updated_at on public.appointments;
+create trigger appointments_set_updated_at
+before update on public.appointments
 for each row
 execute function public.set_updated_at();
 
@@ -122,6 +156,8 @@ execute function public.sync_customer_last_visit_from_visit_history();
 alter table public.customers enable row level security;
 alter table public.service_history enable row level security;
 alter table public.visit_history enable row level security;
+alter table public.color_history enable row level security;
+alter table public.appointments enable row level security;
 
 drop policy if exists "Authenticated users can read customers" on public.customers;
 drop policy if exists "Authenticated users can insert customers" on public.customers;
@@ -198,6 +234,58 @@ create policy "Authenticated users can update visit history"
 
 create policy "Authenticated users can delete visit history"
   on public.visit_history for delete
+  to authenticated
+  using (true);
+
+drop policy if exists "Authenticated users can read color history" on public.color_history;
+drop policy if exists "Authenticated users can insert color history" on public.color_history;
+drop policy if exists "Authenticated users can update color history" on public.color_history;
+drop policy if exists "Authenticated users can delete color history" on public.color_history;
+
+create policy "Authenticated users can read color history"
+  on public.color_history for select
+  to authenticated
+  using (true);
+
+create policy "Authenticated users can insert color history"
+  on public.color_history for insert
+  to authenticated
+  with check (true);
+
+create policy "Authenticated users can update color history"
+  on public.color_history for update
+  to authenticated
+  using (true)
+  with check (true);
+
+create policy "Authenticated users can delete color history"
+  on public.color_history for delete
+  to authenticated
+  using (true);
+
+drop policy if exists "Authenticated users can read appointments" on public.appointments;
+drop policy if exists "Authenticated users can insert appointments" on public.appointments;
+drop policy if exists "Authenticated users can update appointments" on public.appointments;
+drop policy if exists "Authenticated users can delete appointments" on public.appointments;
+
+create policy "Authenticated users can read appointments"
+  on public.appointments for select
+  to authenticated
+  using (true);
+
+create policy "Authenticated users can insert appointments"
+  on public.appointments for insert
+  to authenticated
+  with check (true);
+
+create policy "Authenticated users can update appointments"
+  on public.appointments for update
+  to authenticated
+  using (true)
+  with check (true);
+
+create policy "Authenticated users can delete appointments"
+  on public.appointments for delete
   to authenticated
   using (true);
 

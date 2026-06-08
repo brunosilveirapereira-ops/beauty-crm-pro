@@ -2,7 +2,7 @@ import { demoCustomers, demoServices } from "./mock-data";
 import { daysSince, isAtRisk } from "./risk";
 import { getSupabaseServerClient } from "./supabase-server";
 import { isSupabaseConfigured } from "./supabase";
-import type { ColorHistory, Customer, DashboardStats, ServiceHistory, VisitHistory } from "./types";
+import type { Appointment, ColorHistory, Customer, DashboardStats, ServiceHistory, VisitHistory } from "./types";
 
 export { daysSince, isAtRisk };
 
@@ -108,6 +108,29 @@ export async function getColorHistory(customerId: string): Promise<ColorHistory[
   }
 
   return data as ColorHistory[];
+}
+
+export async function getAppointmentsByDate(date: string): Promise<Appointment[]> {
+  const supabase = getSupabaseServerClient();
+  if (!isSupabaseConfigured || !supabase) {
+    console.info("[Beauty CRM Pro] Modo local: sem agenda Supabase.");
+    return [];
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo agenda de public.appointments.", { date });
+
+  const { data, error } = await supabase
+    .from("appointments")
+    .select("*, customer:customers(id, name, phone, whatsapp)")
+    .eq("appointment_date", date)
+    .order("appointment_time", { ascending: true });
+
+  if (error) {
+    console.error("[Beauty CRM Pro] Erro ao ler agenda no Supabase:", error);
+    return [];
+  }
+
+  return data as Appointment[];
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {

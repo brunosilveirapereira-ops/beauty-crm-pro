@@ -2,11 +2,12 @@ import Link from "next/link";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { CalendarHeart, Gem, LayoutDashboard, Scissors, UserRoundPlus, UsersRound } from "lucide-react";
+import { CalendarCheck, CalendarHeart, Gem, LayoutDashboard, Scissors, UserRoundPlus, UsersRound } from "lucide-react";
 
 const navItems: Array<{ href: Route; label: string; icon: LucideIcon }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clientes", label: "Clientes", icon: UsersRound },
+  { href: "/agenda", label: "Agenda", icon: CalendarCheck },
   { href: "/clientes/em-risco", label: "Em risco", icon: CalendarHeart },
   { href: "/servicos", label: "Servicos", icon: Scissors }
 ];
@@ -67,7 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               Cliente
             </Link>
           </div>
-          <nav className="mt-3 grid grid-cols-4 gap-1">
+          <nav className="mt-3 grid grid-cols-5 gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
