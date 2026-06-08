@@ -7,9 +7,9 @@ import { CalendarCheck, CalendarHeart, Gem, LayoutDashboard, Scissors, UserRound
 const navItems: Array<{ href: Route; label: string; icon: LucideIcon }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clientes", label: "Clientes", icon: UsersRound },
+  { href: "/clientes/em-risco", label: "Em risco", icon: CalendarHeart },
   { href: "/servicos", label: "Servicos", icon: Scissors },
-  { href: "/agenda", label: "Agenda", icon: CalendarCheck },
-  { href: "/clientes/em-risco", label: "Em risco", icon: CalendarHeart }
+  { href: "/agenda", label: "Agenda", icon: CalendarCheck }
 ];
 
 const isDevMode = process.env.DEV_MODE === "true";
@@ -36,6 +36,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-champagne hover:text-ink"
+                title={item.label}
+                aria-label={item.label}
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
@@ -75,10 +77,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="grid place-items-center rounded-md px-2 py-2 text-xs text-stone-600 hover:bg-champagne"
+                  className="grid min-w-0 place-items-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium leading-tight text-stone-600 hover:bg-champagne"
                   title={item.label}
+                  aria-label={item.label}
                 >
                   <Icon className="h-4 w-4" />
+                  <span className="max-w-full truncate">{item.label}</span>
                 </Link>
               );
             })}
