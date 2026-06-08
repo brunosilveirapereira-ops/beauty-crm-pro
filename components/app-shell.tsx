@@ -7,9 +7,9 @@ import { CalendarCheck, CalendarHeart, Gem, LayoutDashboard, Scissors, UserRound
 const navItems: Array<{ href: Route; label: string; icon: LucideIcon }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clientes", label: "Clientes", icon: UsersRound },
+  { href: "/servicos", label: "Servicos", icon: Scissors },
   { href: "/agenda", label: "Agenda", icon: CalendarCheck },
-  { href: "/clientes/em-risco", label: "Em risco", icon: CalendarHeart },
-  { href: "/servicos", label: "Servicos", icon: Scissors }
+  { href: "/clientes/em-risco", label: "Em risco", icon: CalendarHeart }
 ];
 
 const isDevMode = process.env.DEV_MODE === "true";
