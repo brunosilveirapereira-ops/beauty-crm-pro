@@ -1,8 +1,10 @@
 import Link from "next/link";
+import type { Route } from "next";
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { CalendarHeart, Gem, LayoutDashboard, Scissors, UserRoundPlus, UsersRound } from "lucide-react";
 
-const navItems = [
+const navItems: Array<{ href: Route; label: string; icon: LucideIcon }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clientes", label: "Clientes", icon: UsersRound },
   { href: "/clientes/em-risco", label: "Em risco", icon: CalendarHeart },
