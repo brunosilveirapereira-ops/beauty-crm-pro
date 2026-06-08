@@ -1,19 +1,61 @@
+import type { RiskLevel } from "./risk";
 import type { Customer } from "./types";
 
-export function whatsappRecoveryUrl(customer: Pick<Customer, "name" | "whatsapp" | "phone">) {
+type RecoveryMessageOptions = {
+  daysWithoutVisit?: number;
+  lastServiceName?: string | null;
+  risk?: RiskLevel | null;
+};
+
+export function whatsappRecoveryUrl(customer: Pick<Customer, "name" | "whatsapp" | "phone">, options: RecoveryMessageOptions = {}) {
+  return whatsappRecoveryLinks(customer, options).webUrl;
+}
+
+export function whatsappRecoveryLinks(customer: Pick<Customer, "name" | "whatsapp" | "phone">, options: RecoveryMessageOptions = {}) {
   const number = normalizePortugalWhatsapp(customer.whatsapp || customer.phone);
-  const message = `Olá ${customer.name}, tudo bem? Notámos que já faz algum tempo desde a sua última visita. Gostaríamos de saber se quer agendar um horário esta semana.`;
-  return `https://web.whatsapp.com/send?phone=${number}&text=${encodeURIComponent(message)}`;
+  const message = buildRecoveryMessage(customer.name, options);
+  const encodedMessage = encodeURIComponent(message);
+
+  return {
+    appUrl: `whatsapp://send?phone=${number}&text=${encodedMessage}`,
+    webUrl: `https://web.whatsapp.com/send?phone=${number}&text=${encodedMessage}`
+  };
+}
+
+export function openWhatsappWithFallback(appUrl: string, webUrl: string) {
+  if (typeof window === "undefined") return;
+
+  const startedAt = Date.now();
+  window.location.href = appUrl;
+
+  window.setTimeout(() => {
+    if (document.visibilityState === "visible" && Date.now() - startedAt < 2500) {
+      window.open(webUrl, "_blank", "noopener,noreferrer");
+    }
+  }, 1200);
 }
 
 function normalizePortugalWhatsapp(whatsapp: string | null) {
-  const raw = whatsapp?.trim() ?? "";
-  const digits = raw.replace(/\D/g, "");
+  const digits = whatsapp?.trim().replace(/\D/g, "") ?? "";
 
   if (!digits) return "";
-  if (raw.startsWith("+")) return digits;
-  if (raw.startsWith("00")) return digits.replace(/^00/, "");
+  if (digits.startsWith("00")) return digits.replace(/^00/, "");
   if (digits.startsWith("351")) return digits;
 
-  return `351${digits}`;
+  return `351${digits.replace(/^0+/, "")}`;
+}
+
+function buildRecoveryMessage(name: string, options: RecoveryMessageOptions) {
+  const daysText = options.daysWithoutVisit ? `já passaram ${options.daysWithoutVisit} dias desde a sua última visita` : "já faz algum tempo desde a sua última visita";
+  const serviceText = options.lastServiceName ? `, quando realizou ${options.lastServiceName}` : "";
+
+  if (options.risk?.label === "Crítico") {
+    return `Olá ${name}, tudo bem? Notámos que ${daysText}${serviceText}. Queremos muito continuar a cuidar de si e podemos ajudar a encontrar um horário esta semana. Quer que lhe enviemos algumas opções?`;
+  }
+
+  if (options.risk?.label === "Alto Risco") {
+    return `Olá ${name}, tudo bem? Notámos que ${daysText}${serviceText}. Temos saudades de a receber no salão. Quer agendar um horário esta semana?`;
+  }
+
+  return `Olá ${name}, tudo bem? Notámos que ${daysText}${serviceText}. Gostaríamos de saber se quer agendar um horário esta semana.`;
 }

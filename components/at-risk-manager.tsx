@@ -11,7 +11,7 @@ import {
   mergeById
 } from "@/lib/risk";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { whatsappRecoveryUrl } from "@/lib/whatsapp";
+import { openWhatsappWithFallback, whatsappRecoveryLinks } from "@/lib/whatsapp";
 import type { Customer, ServiceHistory } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
@@ -77,31 +77,43 @@ export function AtRiskManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
-            {atRiskCustomers.map(({ customer, daysWithoutVisit, lastService, averageSpent, risk }) => (
-              <tr key={customer.id}>
-                <td className="py-3 font-medium text-ink">{customer.name}</td>
-                <td className="py-3 text-stone-600">{customer.whatsapp || customer.phone}</td>
-                <td className="py-3 text-stone-600">{daysWithoutVisit} dias</td>
-                <td className="py-3 text-stone-600">{lastService?.service ?? "Sem servico registado"}</td>
-                <td className="py-3 text-right font-medium text-ink">{currency.format(averageSpent)}</td>
-                <td className="py-3">
-                  <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${risk.className}`}>
-                    {risk.label}
-                  </span>
-                </td>
-                <td className="py-3 text-right">
-                  <a
-                    href={whatsappRecoveryUrl(customer)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-md bg-sage px-3 py-2 text-xs font-semibold text-white hover:bg-sage/90"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    Enviar WhatsApp
-                  </a>
-                </td>
-              </tr>
-            ))}
+            {atRiskCustomers.map(({ customer, daysWithoutVisit, lastService, averageSpent, risk }) => {
+              const whatsappLinks = whatsappRecoveryLinks(customer, {
+                daysWithoutVisit,
+                lastServiceName: lastService?.service,
+                risk
+              });
+
+              return (
+                <tr key={customer.id}>
+                  <td className="py-3 font-medium text-ink">{customer.name}</td>
+                  <td className="py-3 text-stone-600">{customer.whatsapp || customer.phone}</td>
+                  <td className="py-3 text-stone-600">{daysWithoutVisit} dias</td>
+                  <td className="py-3 text-stone-600">{lastService?.service ?? "Sem servico registado"}</td>
+                  <td className="py-3 text-right font-medium text-ink">{currency.format(averageSpent)}</td>
+                  <td className="py-3">
+                    <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${risk.className}`}>
+                      {risk.label}
+                    </span>
+                  </td>
+                  <td className="py-3 text-right">
+                    <a
+                      href={whatsappLinks.webUrl}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        openWhatsappWithFallback(whatsappLinks.appUrl, whatsappLinks.webUrl);
+                      }}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-md bg-sage px-3 py-2 text-xs font-semibold text-white hover:bg-sage/90"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Enviar WhatsApp
+                    </a>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

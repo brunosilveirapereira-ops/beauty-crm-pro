@@ -9,7 +9,7 @@ import { Eye, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { CustomerForm } from "@/components/customer-form";
 import { deletedCustomersStorageKey, localCustomersStorageKey, mergeById } from "@/lib/risk";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { whatsappRecoveryUrl } from "@/lib/whatsapp";
+import { openWhatsappWithFallback, whatsappRecoveryLinks } from "@/lib/whatsapp";
 import type { Customer } from "@/lib/types";
 
 export function CustomerManager({ initialCustomers }: { initialCustomers: Customer[] }) {
@@ -121,6 +121,7 @@ export function CustomerManager({ initialCustomers }: { initialCustomers: Custom
             <tbody className="divide-y divide-stone-100">
               {customers.map((customer) => {
                 const customerRoute = `/clientes/${customer.id}` as Route;
+                const whatsappLinks = whatsappRecoveryLinks(customer);
 
                 return (
                   <tr key={customer.id}>
@@ -163,7 +164,11 @@ export function CustomerManager({ initialCustomers }: { initialCustomers: Custom
                           Apagar
                         </button>
                         <a
-                          href={whatsappRecoveryUrl(customer)}
+                          href={whatsappLinks.webUrl}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            openWhatsappWithFallback(whatsappLinks.appUrl, whatsappLinks.webUrl);
+                          }}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-xs font-semibold text-ink hover:bg-champagne"
