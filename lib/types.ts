@@ -24,17 +24,7 @@ export type ServiceHistory = {
   customer?: Pick<Customer, "id" | "name" | "whatsapp"> | null;
 };
 
-export type VisitHistory = {
-  id: string;
-  customer_id: string;
-  service_id: string | null;
-  service_name: string;
-  professional_name: string | null;
-  visit_date: string;
-  value: number;
-  notes: string | null;
-  created_at: string;
-};
+export type VisitHistory = ServiceHistory;
 
 export type DashboardStats = {
   totalCustomers: number;

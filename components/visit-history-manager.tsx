@@ -9,7 +9,7 @@ import type { Customer, VisitHistory } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 
-type VisitPayload = Omit<VisitHistory, "id" | "created_at">;
+type VisitPayload = Omit<VisitHistory, "id" | "customer">;
 
 export function VisitHistoryManager({
   customer,
@@ -30,28 +30,28 @@ export function VisitHistoryManager({
 
     const payload: VisitPayload = {
       customer_id: customer.id,
-      service_id: null,
-      service_name: String(form.get("service_name")),
-      professional_name: String(form.get("professional_name") || "") || null,
-      visit_date: String(form.get("visit_date")),
+      service: String(form.get("service_name")),
+      professional: String(form.get("professional_name") || "") || null,
+      date: String(form.get("visit_date")),
       value: Number(form.get("value") || 0),
+      formula_products: null,
       notes: String(form.get("notes") || "") || null
     };
 
-    console.info("[Beauty CRM Pro] Supabase conectado: gravando visita em public.visit_history.", {
-      table: "visit_history",
+    console.info("[Beauty CRM Pro] Supabase conectado: gravando visita em public.service_history.", {
+      table: "service_history",
       devMode: isDevMode,
       customerId: customer.id,
       payload
     });
 
     const supabase = createClientComponentClient();
-    const { data, error } = await supabase.from("visit_history").insert(payload).select("*").single();
+    const { data, error } = await supabase.from("service_history").insert(payload).select("*").single();
 
     if (error) {
       const visibleError = formatSupabaseError(error);
       console.error("[Beauty CRM Pro] Erro ao gravar visita no Supabase:", {
-        table: "visit_history",
+        table: "service_history",
         devMode: isDevMode,
         customerId: customer.id,
         payload,
@@ -62,7 +62,7 @@ export function VisitHistoryManager({
     }
 
     setVisits((current) =>
-      [data as VisitHistory, ...current].sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime())
+      [data as VisitHistory, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     );
     setStatus("Visita guardada com sucesso.");
     formElement.reset();
@@ -131,9 +131,9 @@ export function VisitHistoryManager({
           <tbody className="divide-y divide-stone-100">
             {visits.map((visit) => (
               <tr key={visit.id}>
-                <td className="py-3 text-stone-600">{visit.visit_date}</td>
-                <td className="py-3 font-medium text-ink">{visit.service_name}</td>
-                <td className="py-3 text-stone-600">{visit.professional_name}</td>
+                <td className="py-3 text-stone-600">{visit.date}</td>
+                <td className="py-3 font-medium text-ink">{visit.service}</td>
+                <td className="py-3 text-stone-600">{visit.professional}</td>
                 <td className="py-3 text-right font-medium text-ink">{currency.format(Number(visit.value))}</td>
                 <td className="max-w-xs truncate py-3 text-stone-600">{visit.notes}</td>
               </tr>

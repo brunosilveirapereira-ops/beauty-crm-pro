@@ -67,20 +67,20 @@ export async function getServices(): Promise<ServiceHistory[]> {
 export async function getVisitHistory(customerId: string): Promise<VisitHistory[]> {
   const supabase = getSupabaseServerClient();
   if (!isSupabaseConfigured || !supabase) {
-    console.info("[Beauty CRM Pro] Modo local: sem historico de visitas Supabase.");
-    return [];
+    console.info("[Beauty CRM Pro] Modo local: lendo historico de visitas demo via service_history.");
+    return demoServices.filter((service) => service.customer_id === customerId);
   }
 
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo visitas de public.visit_history.", { customerId });
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo visitas de public.service_history.", { customerId });
 
   const { data, error } = await supabase
-    .from("visit_history")
+    .from("service_history")
     .select("*")
     .eq("customer_id", customerId)
-    .order("visit_date", { ascending: false });
+    .order("date", { ascending: false });
 
   if (error) {
-    console.error("[Beauty CRM Pro] Erro ao ler historico de visitas do Supabase:", error);
+    console.error("[Beauty CRM Pro] Erro ao ler historico de visitas em service_history:", error);
     return [];
   }
 
