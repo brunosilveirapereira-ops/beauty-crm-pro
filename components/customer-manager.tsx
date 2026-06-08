@@ -5,7 +5,7 @@ import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { Eye, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { CustomerForm } from "@/components/customer-form";
 import { deletedCustomersStorageKey, localCustomersStorageKey, mergeById } from "@/lib/risk";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -119,52 +119,63 @@ export function CustomerManager({ initialCustomers }: { initialCustomers: Custom
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {customers.map((customer) => (
-                <tr key={customer.id}>
-                  <td className="py-3 font-medium text-ink">
-                    <Link className="hover:text-blush hover:underline" href={`/clientes/${customer.id}` as Route}>
-                      {customer.name}
-                    </Link>
-                  </td>
-                  <td className="py-3 text-stone-600">{customer.whatsapp}</td>
-                  <td className="py-3 text-stone-600">{customer.instagram}</td>
-                  <td className="py-3 text-stone-600">{customer.birth_date}</td>
-                  <td className="py-3 text-stone-600">{customer.last_visit}</td>
-                  <td className="py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingCustomer(customer);
-                          setDeleteStatus("");
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        className="inline-flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-xs font-semibold text-ink hover:bg-champagne"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(customer)}
-                        className="inline-flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Apagar
-                      </button>
-                      <a
-                        href={whatsappRecoveryUrl(customer)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-xs font-semibold text-ink hover:bg-champagne"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        WhatsApp
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {customers.map((customer) => {
+                const customerRoute = `/clientes/${customer.id}` as Route;
+
+                return (
+                  <tr key={customer.id}>
+                    <td className="py-3 font-medium text-ink">
+                      <Link className="hover:text-blush hover:underline" href={customerRoute}>
+                        {customer.name}
+                      </Link>
+                    </td>
+                    <td className="py-3 text-stone-600">{customer.whatsapp}</td>
+                    <td className="py-3 text-stone-600">{customer.instagram}</td>
+                    <td className="py-3 text-stone-600">{customer.birth_date}</td>
+                    <td className="py-3 text-stone-600">{customer.last_visit}</td>
+                    <td className="py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={customerRoute}
+                          className="inline-flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-xs font-semibold text-ink hover:bg-champagne"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Ver ficha
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCustomer(customer);
+                            setDeleteStatus("");
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className="inline-flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-xs font-semibold text-ink hover:bg-champagne"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(customer)}
+                          className="inline-flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Apagar
+                        </button>
+                        <a
+                          href={whatsappRecoveryUrl(customer)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-xs font-semibold text-ink hover:bg-champagne"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          WhatsApp
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
