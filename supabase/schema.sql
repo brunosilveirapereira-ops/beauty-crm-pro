@@ -80,6 +80,17 @@ create table if not exists public.color_history (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.product_history (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.customers(id) on delete cascade,
+  date date not null,
+  brand text not null,
+  product_name text not null,
+  quantity text,
+  observations text,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.appointments (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers(id) on delete cascade,
@@ -106,6 +117,8 @@ create index if not exists visit_history_customer_id_idx on public.visit_history
 create index if not exists visit_history_visit_date_idx on public.visit_history(visit_date);
 create index if not exists color_history_customer_id_idx on public.color_history(customer_id);
 create index if not exists color_history_color_date_idx on public.color_history(color_date);
+create index if not exists product_history_customer_id_idx on public.product_history(customer_id);
+create index if not exists product_history_date_idx on public.product_history(date);
 create index if not exists appointments_customer_id_idx on public.appointments(customer_id);
 create index if not exists appointments_date_time_idx on public.appointments(appointment_date, appointment_time);
 
@@ -190,6 +203,7 @@ alter table public.professionals enable row level security;
 alter table public.service_history enable row level security;
 alter table public.visit_history enable row level security;
 alter table public.color_history enable row level security;
+alter table public.product_history enable row level security;
 alter table public.appointments enable row level security;
 
 drop policy if exists "Authenticated users can read customers" on public.customers;
@@ -319,6 +333,32 @@ create policy "Authenticated users can update color history"
 
 create policy "Authenticated users can delete color history"
   on public.color_history for delete
+  to authenticated
+  using (true);
+
+drop policy if exists "Authenticated users can read product history" on public.product_history;
+drop policy if exists "Authenticated users can insert product history" on public.product_history;
+drop policy if exists "Authenticated users can update product history" on public.product_history;
+drop policy if exists "Authenticated users can delete product history" on public.product_history;
+
+create policy "Authenticated users can read product history"
+  on public.product_history for select
+  to authenticated
+  using (true);
+
+create policy "Authenticated users can insert product history"
+  on public.product_history for insert
+  to authenticated
+  with check (true);
+
+create policy "Authenticated users can update product history"
+  on public.product_history for update
+  to authenticated
+  using (true)
+  with check (true);
+
+create policy "Authenticated users can delete product history"
+  on public.product_history for delete
   to authenticated
   using (true);
 

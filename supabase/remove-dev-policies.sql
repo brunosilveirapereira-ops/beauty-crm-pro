@@ -25,6 +25,11 @@ drop policy if exists "Dev anon can insert color history" on public.color_histor
 drop policy if exists "Dev anon can update color history" on public.color_history;
 drop policy if exists "Dev anon can delete color history" on public.color_history;
 
+drop policy if exists "Dev anon can read product history" on public.product_history;
+drop policy if exists "Dev anon can insert product history" on public.product_history;
+drop policy if exists "Dev anon can update product history" on public.product_history;
+drop policy if exists "Dev anon can delete product history" on public.product_history;
+
 drop policy if exists "Dev anon can read appointments" on public.appointments;
 drop policy if exists "Dev anon can insert appointments" on public.appointments;
 drop policy if exists "Dev anon can update appointments" on public.appointments;

@@ -58,6 +58,17 @@ export type ColorHistory = {
   created_at: string;
 };
 
+export type ProductHistory = {
+  id: string;
+  customer_id: string;
+  date: string;
+  brand: string;
+  product_name: string;
+  quantity: string | null;
+  observations: string | null;
+  created_at: string;
+};
+
 export type Appointment = {
   id: string;
   customer_id: string;

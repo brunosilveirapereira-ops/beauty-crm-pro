@@ -4,16 +4,18 @@ import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ColorHistoryManager } from "@/components/color-history-manager";
 import { PageHeader } from "@/components/page-header";
+import { ProductHistoryManager } from "@/components/product-history-manager";
 import { VisitHistoryManager } from "@/components/visit-history-manager";
-import { getColorHistory, getCustomer, getProfessionals, getVisitHistory } from "@/lib/data";
+import { getColorHistory, getCustomer, getProductHistory, getProfessionals, getVisitHistory } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
-  const [customer, visits, colors, professionals] = await Promise.all([
+  const [customer, visits, colors, products, professionals] = await Promise.all([
     getCustomer(params.id),
     getVisitHistory(params.id),
     getColorHistory(params.id),
+    getProductHistory(params.id),
     getProfessionals()
   ]);
 
@@ -45,10 +47,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
 
       <VisitHistoryManager customer={customer} initialVisits={visits} professionals={professionals} />
 
-      <section className="mt-6 rounded-lg border border-dashed border-stone-300 bg-white/80 p-5">
-        <h2 className="text-base font-semibold text-ink">Produtos Utilizados</h2>
-        <p className="mt-1 text-sm text-stone-500">Secção futura para registar produtos utilizados em cada atendimento.</p>
-      </section>
+      <ProductHistoryManager customer={customer} initialProducts={products} />
 
       <ColorHistoryManager customer={customer} initialColors={colors} />
     </AppShell>

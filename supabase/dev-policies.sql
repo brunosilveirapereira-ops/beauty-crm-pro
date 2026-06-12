@@ -7,6 +7,7 @@ alter table public.professionals enable row level security;
 alter table public.service_history enable row level security;
 alter table public.visit_history enable row level security;
 alter table public.color_history enable row level security;
+alter table public.product_history enable row level security;
 alter table public.appointments enable row level security;
 
 drop policy if exists "Dev anon can read customers" on public.customers;
@@ -136,6 +137,32 @@ create policy "Dev anon can update color history"
 
 create policy "Dev anon can delete color history"
   on public.color_history for delete
+  to anon
+  using (true);
+
+drop policy if exists "Dev anon can read product history" on public.product_history;
+drop policy if exists "Dev anon can insert product history" on public.product_history;
+drop policy if exists "Dev anon can update product history" on public.product_history;
+drop policy if exists "Dev anon can delete product history" on public.product_history;
+
+create policy "Dev anon can read product history"
+  on public.product_history for select
+  to anon
+  using (true);
+
+create policy "Dev anon can insert product history"
+  on public.product_history for insert
+  to anon
+  with check (true);
+
+create policy "Dev anon can update product history"
+  on public.product_history for update
+  to anon
+  using (true)
+  with check (true);
+
+create policy "Dev anon can delete product history"
+  on public.product_history for delete
   to anon
   using (true);
 
