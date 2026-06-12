@@ -3,6 +3,7 @@
 -- Remove these policies before production.
 
 alter table public.customers enable row level security;
+alter table public.professionals enable row level security;
 alter table public.service_history enable row level security;
 alter table public.visit_history enable row level security;
 alter table public.color_history enable row level security;
@@ -31,6 +32,32 @@ create policy "Dev anon can update customers"
 
 create policy "Dev anon can delete customers"
   on public.customers for delete
+  to anon
+  using (true);
+
+drop policy if exists "Dev anon can read professionals" on public.professionals;
+drop policy if exists "Dev anon can insert professionals" on public.professionals;
+drop policy if exists "Dev anon can update professionals" on public.professionals;
+drop policy if exists "Dev anon can delete professionals" on public.professionals;
+
+create policy "Dev anon can read professionals"
+  on public.professionals for select
+  to anon
+  using (true);
+
+create policy "Dev anon can insert professionals"
+  on public.professionals for insert
+  to anon
+  with check (true);
+
+create policy "Dev anon can update professionals"
+  on public.professionals for update
+  to anon
+  using (true)
+  with check (true);
+
+create policy "Dev anon can delete professionals"
+  on public.professionals for delete
   to anon
   using (true);
 

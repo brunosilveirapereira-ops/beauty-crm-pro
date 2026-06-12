@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Plus, Save } from "lucide-react";
 import { isDevMode } from "@/lib/supabase";
-import type { Customer, VisitHistory } from "@/lib/types";
+import type { Customer, Professional, VisitHistory } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 
@@ -13,10 +13,12 @@ type VisitPayload = Omit<VisitHistory, "id" | "customer">;
 
 export function VisitHistoryManager({
   customer,
-  initialVisits
+  initialVisits,
+  professionals
 }: {
   customer: Customer;
   initialVisits: VisitHistory[];
+  professionals: Professional[];
 }) {
   const router = useRouter();
   const [visits, setVisits] = useState(initialVisits);
@@ -27,11 +29,15 @@ export function VisitHistoryManager({
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    const professionalId = String(form.get("professional_id") || "") || null;
+    const selectedProfessional = professionals.find((professional) => professional.id === professionalId) ?? null;
+    const fallbackProfessional = String(form.get("professional_name") || "") || null;
 
     const payload: VisitPayload = {
       customer_id: customer.id,
+      professional_id: professionalId,
       service: String(form.get("service_name")),
-      professional: String(form.get("professional_name") || "") || null,
+      professional: selectedProfessional?.name ?? fallbackProfessional,
       date: String(form.get("visit_date")),
       value: Number(form.get("value") || 0),
       formula_products: null,
@@ -46,7 +52,11 @@ export function VisitHistoryManager({
     });
 
     const supabase = createClientComponentClient();
-    const { data, error } = await supabase.from("service_history").insert(payload).select("*").single();
+    const { data, error } = await supabase
+      .from("service_history")
+      .insert(payload)
+      .select("*, professional_profile:professionals(id, name, commission_percentage, active)")
+      .single();
 
     if (error) {
       const visibleError = formatSupabaseError(error);
@@ -94,7 +104,20 @@ export function VisitHistoryManager({
         <form onSubmit={handleSubmit} className="mt-5 rounded-lg border border-stone-200 bg-champagne/40 p-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Serviço" name="service_name" required />
-            <Field label="Profissional" name="professional_name" />
+            <label>
+              <span className="text-sm font-medium text-stone-700">Profissional cadastrado</span>
+              <select className="focus-ring mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 text-sm" name="professional_id">
+                <option value="">Selecionar profissional</option>
+                {professionals
+                  .filter((professional) => professional.active)
+                  .map((professional) => (
+                    <option key={professional.id} value={professional.id}>
+                      {professional.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <Field label="Profissional (fallback)" name="professional_name" />
             <Field label="Data" name="visit_date" type="date" required />
             <Field label="Valor" name="value" type="number" required />
             <label className="md:col-span-2">
@@ -133,7 +156,7 @@ export function VisitHistoryManager({
               <tr key={visit.id}>
                 <td className="py-3 text-stone-600">{visit.date}</td>
                 <td className="py-3 font-medium text-ink">{visit.service}</td>
-                <td className="py-3 text-stone-600">{visit.professional}</td>
+                <td className="py-3 text-stone-600">{visit.professional_profile?.name ?? visit.professional}</td>
                 <td className="py-3 text-right font-medium text-ink">{currency.format(Number(visit.value))}</td>
                 <td className="max-w-xs truncate py-3 text-stone-600">{visit.notes}</td>
               </tr>

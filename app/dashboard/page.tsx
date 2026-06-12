@@ -4,7 +4,7 @@ import { DashboardStatsGrid } from "@/components/dashboard-stats-grid";
 import { DataModeIndicator } from "@/components/data-mode-indicator";
 import { PageHeader } from "@/components/page-header";
 import { TodayAppointments } from "@/components/today-appointments";
-import { getAppointmentsByDate, getCustomers, getServices } from "@/lib/data";
+import { getAppointmentsByDate, getCustomers, getProfessionals, getServices } from "@/lib/data";
 
 const currency = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 
@@ -12,7 +12,12 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const today = new Date().toISOString().slice(0, 10);
-  const [customers, services, appointments] = await Promise.all([getCustomers(), getServices(), getAppointmentsByDate(today)]);
+  const [customers, professionals, services, appointments] = await Promise.all([
+    getCustomers(),
+    getProfessionals(),
+    getServices(),
+    getAppointmentsByDate(today)
+  ]);
   const recentServices = services.slice(0, 5);
   const upcomingAppointments = appointments.filter((appointment) => appointment.appointment_time.slice(0, 5) >= new Date().toTimeString().slice(0, 5)).slice(0, 5);
 
@@ -24,7 +29,7 @@ export default async function DashboardPage() {
         action={<DataModeIndicator />}
       />
 
-      <DashboardStatsGrid initialCustomers={customers} initialServices={services} />
+      <DashboardStatsGrid initialCustomers={customers} initialProfessionals={professionals} initialServices={services} />
 
       <section className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
@@ -44,7 +49,7 @@ export default async function DashboardPage() {
                   <tr key={item.id}>
                     <td className="py-3 text-ink">{item.customer?.name ?? "Cliente"}</td>
                     <td className="py-3 text-stone-600">{item.service}</td>
-                    <td className="py-3 text-stone-600">{item.professional}</td>
+                    <td className="py-3 text-stone-600">{item.professional_profile?.name ?? item.professional}</td>
                     <td className="py-3 text-right font-medium text-ink">{currency.format(Number(item.value))}</td>
                   </tr>
                 ))}

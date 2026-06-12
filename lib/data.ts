@@ -1,8 +1,9 @@
-import { demoCustomers, demoServices } from "./mock-data";
+import { calculateMonthlyCommissionSummary, getCurrentMonthKey } from "./commissions";
+import { demoCustomers, demoProfessionals, demoServices } from "./mock-data";
 import { daysSince, isAtRisk } from "./risk";
 import { getSupabaseServerClient } from "./supabase-server";
 import { isSupabaseConfigured } from "./supabase";
-import type { Appointment, ColorHistory, Customer, DashboardStats, ServiceHistory, VisitHistory } from "./types";
+import type { Appointment, ColorHistory, Customer, DashboardStats, Professional, ServiceHistory, VisitHistory } from "./types";
 
 export { daysSince, isAtRisk };
 
@@ -53,7 +54,7 @@ export async function getServices(): Promise<ServiceHistory[]> {
 
   const { data, error } = await supabase
     .from("service_history")
-    .select("*, customer:customers(id, name, whatsapp)")
+    .select("*, customer:customers(id, name, whatsapp), professional_profile:professionals(id, name, commission_percentage, active)")
     .order("date", { ascending: false });
 
   if (error) {
@@ -62,6 +63,24 @@ export async function getServices(): Promise<ServiceHistory[]> {
   }
 
   return data as ServiceHistory[];
+}
+
+export async function getProfessionals(): Promise<Professional[]> {
+  const supabase = getSupabaseServerClient();
+  if (!isSupabaseConfigured || !supabase) {
+    console.info("[Beauty CRM Pro] Modo local: lendo profissionais demo.");
+    return demoProfessionals;
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo profissionais de public.professionals.");
+
+  const { data, error } = await supabase.from("professionals").select("*").order("name", { ascending: true });
+  if (error) {
+    console.error("[Beauty CRM Pro] Erro ao ler profissionais do Supabase:", error);
+    return [];
+  }
+
+  return data as Professional[];
 }
 
 export async function getVisitHistory(customerId: string): Promise<VisitHistory[]> {
@@ -75,7 +94,7 @@ export async function getVisitHistory(customerId: string): Promise<VisitHistory[
 
   const { data, error } = await supabase
     .from("service_history")
-    .select("*")
+    .select("*, professional_profile:professionals(id, name, commission_percentage, active)")
     .eq("customer_id", customerId)
     .order("date", { ascending: false });
 
@@ -136,9 +155,11 @@ export async function getAppointmentsByDate(date: string): Promise<Appointment[]
 export async function getDashboardStats(): Promise<DashboardStats> {
   const customers = await getCustomers();
   const services = await getServices();
+  const professionals = await getProfessionals();
   const today = new Date();
   const currentMonth = today.getUTCMonth() + 1;
   const currentYear = today.getUTCFullYear();
+  const commissionSummary = calculateMonthlyCommissionSummary(professionals, services, getCurrentMonthKey(today));
 
   return {
     totalCustomers: customers.length,
@@ -152,6 +173,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         const date = new Date(`${service.date}T12:00:00Z`);
         return date.getUTCMonth() + 1 === currentMonth && date.getUTCFullYear() === currentYear;
       })
-      .reduce((sum, service) => sum + Number(service.value), 0)
+      .reduce((sum, service) => sum + Number(service.value), 0),
+    monthlyCommissions: commissionSummary.monthlyCommissions,
+    monthlySalonNet: commissionSummary.monthlySalonNet
   };
 }

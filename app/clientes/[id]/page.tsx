@@ -5,12 +5,17 @@ import { AppShell } from "@/components/app-shell";
 import { ColorHistoryManager } from "@/components/color-history-manager";
 import { PageHeader } from "@/components/page-header";
 import { VisitHistoryManager } from "@/components/visit-history-manager";
-import { getColorHistory, getCustomer, getVisitHistory } from "@/lib/data";
+import { getColorHistory, getCustomer, getProfessionals, getVisitHistory } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
-  const [customer, visits, colors] = await Promise.all([getCustomer(params.id), getVisitHistory(params.id), getColorHistory(params.id)]);
+  const [customer, visits, colors, professionals] = await Promise.all([
+    getCustomer(params.id),
+    getVisitHistory(params.id),
+    getColorHistory(params.id),
+    getProfessionals()
+  ]);
 
   if (!customer) notFound();
 
@@ -38,7 +43,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
         <Info label="Última visita" value={customer.last_visit_date ?? customer.last_visit} />
       </section>
 
-      <VisitHistoryManager customer={customer} initialVisits={visits} />
+      <VisitHistoryManager customer={customer} initialVisits={visits} professionals={professionals} />
 
       <section className="mt-6 rounded-lg border border-dashed border-stone-300 bg-white/80 p-5">
         <h2 className="text-base font-semibold text-ink">Produtos Utilizados</h2>

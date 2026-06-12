@@ -6,15 +6,17 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Save } from "lucide-react";
 import { localServicesStorageKey } from "@/lib/risk";
 import { isDevMode, isSupabaseConfigured } from "@/lib/supabase";
-import type { Customer, ServiceHistory } from "@/lib/types";
+import type { Customer, Professional, ServiceHistory } from "@/lib/types";
 
 type ServicePayload = Omit<ServiceHistory, "id" | "customer">;
 
 export function ServiceForm({
   customers,
+  professionals,
   onServiceSaved
 }: {
   customers: Customer[];
+  professionals: Professional[];
   onServiceSaved: (service: ServiceHistory) => void;
 }) {
   const router = useRouter();
@@ -26,12 +28,16 @@ export function ServiceForm({
     const form = new FormData(formElement);
     const customerId = String(form.get("customer_id"));
     const selectedCustomer = customers.find((customer) => customer.id === customerId) ?? null;
+    const professionalId = String(form.get("professional_id") || "") || null;
+    const selectedProfessional = professionals.find((professional) => professional.id === professionalId) ?? null;
+    const fallbackProfessional = String(form.get("professional") || "") || null;
 
     const payload: ServicePayload = {
       customer_id: customerId,
+      professional_id: professionalId,
       date: String(form.get("date")),
       service: String(form.get("service")),
-      professional: String(form.get("professional") || "") || null,
+      professional: selectedProfessional?.name ?? fallbackProfessional,
       value: Number(form.get("value") || 0),
       formula_products: String(form.get("formula_products") || "") || null,
       notes: String(form.get("notes") || "") || null
@@ -42,7 +48,8 @@ export function ServiceForm({
       const localService: ServiceHistory = {
         ...payload,
         id: `local-service-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`,
-        customer: selectedCustomer
+        customer: selectedCustomer,
+        professional_profile: selectedProfessional
       };
       const currentServices = readStoredServices();
       window.localStorage.setItem(localServicesStorageKey, JSON.stringify([localService, ...currentServices]));
@@ -63,7 +70,7 @@ export function ServiceForm({
     const { data, error } = await supabase
       .from("service_history")
       .insert(payload)
-      .select("*, customer:customers(id, name, whatsapp)")
+      .select("*, customer:customers(id, name, whatsapp), professional_profile:professionals(id, name, commission_percentage, active)")
       .single();
 
     if (error) {
@@ -100,7 +107,20 @@ export function ServiceForm({
         </label>
         <Field label="Data" name="date" type="date" required />
         <Field label="Servico" name="service" required />
-        <Field label="Profissional" name="professional" />
+        <label>
+          <span className="text-sm font-medium text-stone-700">Profissional cadastrado</span>
+          <select className="focus-ring mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 text-sm" name="professional_id">
+            <option value="">Selecionar profissional</option>
+            {professionals
+              .filter((professional) => professional.active)
+              .map((professional) => (
+                <option key={professional.id} value={professional.id}>
+                  {professional.name}
+                </option>
+              ))}
+          </select>
+        </label>
+        <Field label="Profissional (fallback)" name="professional" />
         <Field label="Valor" name="value" type="number" required />
         <Field label="Formula/produtos usados" name="formula_products" />
         <label className="md:col-span-2">

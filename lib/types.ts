@@ -15,6 +15,7 @@ export type Customer = {
 export type ServiceHistory = {
   id: string;
   customer_id: string;
+  professional_id?: string | null;
   date: string;
   service: string;
   professional: string | null;
@@ -22,9 +23,29 @@ export type ServiceHistory = {
   formula_products: string | null;
   notes: string | null;
   customer?: Pick<Customer, "id" | "name" | "whatsapp"> | null;
+  professional_profile?: Pick<Professional, "id" | "name" | "commission_percentage" | "active"> | null;
 };
 
 export type VisitHistory = ServiceHistory;
+
+export type Professional = {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  role: string | null;
+  commission_percentage: number;
+  active: boolean;
+  created_at: string;
+};
+
+export type CommissionReportItem = {
+  professional: Professional;
+  totalRevenue: number;
+  commissionPercentage: number;
+  commissionValue: number;
+  salonValue: number;
+};
 
 export type ColorHistory = {
   id: string;
@@ -56,4 +77,6 @@ export type DashboardStats = {
   atRiskCustomers: number;
   monthlyBirthdays: number;
   monthlyRevenue: number;
+  monthlyCommissions: number;
+  monthlySalonNet: number;
 };

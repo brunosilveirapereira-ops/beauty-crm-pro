@@ -2,21 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ServiceForm } from "@/components/service-form";
+import { localProfessionalsStorageKey } from "@/components/professionals-manager";
 import { deletedCustomersStorageKey, localCustomersStorageKey, localServicesStorageKey, mergeById } from "@/lib/risk";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import type { Customer, ServiceHistory } from "@/lib/types";
+import type { Customer, Professional, ServiceHistory } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 
 export function ServiceManager({
   initialCustomers,
+  initialProfessionals,
   initialServices
 }: {
   initialCustomers: Customer[];
+  initialProfessionals: Professional[];
   initialServices: ServiceHistory[];
 }) {
   const [localCustomers, setLocalCustomers] = useState<Customer[]>([]);
   const [localServices, setLocalServices] = useState<ServiceHistory[]>([]);
+  const [localProfessionals, setLocalProfessionals] = useState<Professional[]>([]);
   const [deletedCustomerIds, setDeletedCustomerIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -28,10 +32,12 @@ export function ServiceManager({
     console.info("[Beauty CRM Pro] Modo local: lendo clientes/servicos do localStorage.");
     setLocalCustomers(readStoredItems<Customer>(localCustomersStorageKey));
     setLocalServices(readStoredItems<ServiceHistory>(localServicesStorageKey));
+    setLocalProfessionals(readStoredItems<Professional>(localProfessionalsStorageKey));
     setDeletedCustomerIds(readStoredItems<string>(deletedCustomersStorageKey));
   }, []);
 
   const customers = useMemo(() => mergeById(localCustomers, initialCustomers, deletedCustomerIds), [deletedCustomerIds, initialCustomers, localCustomers]);
+  const professionals = useMemo(() => mergeById(localProfessionals, initialProfessionals), [initialProfessionals, localProfessionals]);
   const services = useMemo(() => mergeById(localServices, initialServices), [initialServices, localServices]);
 
   function handleServiceSaved(service: ServiceHistory) {
@@ -40,7 +46,7 @@ export function ServiceManager({
 
   return (
     <>
-      <ServiceForm customers={customers} onServiceSaved={handleServiceSaved} />
+      <ServiceForm customers={customers} professionals={professionals} onServiceSaved={handleServiceSaved} />
 
       <section className="mt-6 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-ink">Atendimentos registados</h2>
@@ -62,7 +68,7 @@ export function ServiceManager({
                   <td className="py-3 text-stone-600">{item.date}</td>
                   <td className="py-3 font-medium text-ink">{item.customer?.name ?? customers.find((customer) => customer.id === item.customer_id)?.name ?? "Cliente"}</td>
                   <td className="py-3 text-stone-600">{item.service}</td>
-                  <td className="py-3 text-stone-600">{item.professional}</td>
+                  <td className="py-3 text-stone-600">{item.professional_profile?.name ?? item.professional}</td>
                   <td className="max-w-xs truncate py-3 text-stone-600">{item.formula_products}</td>
                   <td className="py-3 text-right font-medium text-ink">{currency.format(Number(item.value))}</td>
                 </tr>
