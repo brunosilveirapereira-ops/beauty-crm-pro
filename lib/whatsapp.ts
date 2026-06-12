@@ -14,6 +14,17 @@ export function whatsappRecoveryUrl(customer: Pick<Customer, "name" | "whatsapp"
 export function whatsappRecoveryLinks(customer: Pick<Customer, "name" | "whatsapp" | "phone">, options: RecoveryMessageOptions = {}) {
   const number = normalizePortugalWhatsapp(customer.whatsapp || customer.phone);
   const message = buildRecoveryMessage(customer.name, options);
+  return whatsappMessageLinks(number, message);
+}
+
+export function whatsappBirthdayLinks(customer: Pick<Customer, "name" | "whatsapp" | "phone">) {
+  const number = normalizePortugalWhatsapp(customer.whatsapp || customer.phone);
+  const message = `Olá ${customer.name}! 🎉 A equipa do salão deseja-lhe um feliz aniversário. Que o seu dia seja maravilhoso! Temos uma surpresa especial para si este mês.`;
+
+  return whatsappMessageLinks(number, message);
+}
+
+function whatsappMessageLinks(number: string, message: string) {
   const encodedMessage = encodeURIComponent(message);
 
   return {

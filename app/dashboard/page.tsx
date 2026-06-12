@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { BirthdayWeekCard } from "@/components/birthday-week-card";
 import { DashboardRecoveryPreview } from "@/components/dashboard-recovery-preview";
 import { DashboardStatsGrid } from "@/components/dashboard-stats-grid";
 import { DataModeIndicator } from "@/components/data-mode-indicator";
@@ -59,6 +60,10 @@ export default async function DashboardPage() {
         </div>
 
         <DashboardRecoveryPreview initialCustomers={customers} initialServices={services} />
+      </section>
+
+      <section className="mt-6">
+        <BirthdayWeekCard initialCustomers={customers} />
       </section>
 
       <section className="mt-6">
