@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Camera, ImageOff, ImagePlus, Save } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, ImageOff, ImagePlus, Save } from "lucide-react";
 import { isDevMode } from "@/lib/supabase";
 import type { BeforeAfterHistory, Customer } from "@/lib/types";
 
@@ -16,7 +16,9 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// ------------------------------------------------------------
+// ============================================================
+// Manager principal
+// ============================================================
 
 export function BeforeAfterManager({
   customer,
@@ -52,10 +54,7 @@ export function BeforeAfterManager({
     setPreview: (url: string | null) => void
   ) {
     const file = e.target.files?.[0];
-    if (!file) {
-      setPreview(null);
-      return;
-    }
+    if (!file) { setPreview(null); return; }
     if (!ACCEPTED_MIME.includes(file.type)) {
       setStatus("Formato inválido. Usa JPG, JPEG, PNG ou WEBP.");
       e.target.value = "";
@@ -79,9 +78,7 @@ export function BeforeAfterManager({
       upsert: false
     });
 
-    if (error) {
-      throw new Error(`Erro ao fazer upload da foto "${label}": ${error.message}`);
-    }
+    if (error) throw new Error(`Erro ao fazer upload da foto "${label}": ${error.message}`);
 
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
     return data.publicUrl;
@@ -95,14 +92,8 @@ export function BeforeAfterManager({
     const beforeFile = beforeFileRef.current?.files?.[0];
     const afterFile = afterFileRef.current?.files?.[0];
 
-    if (!beforeFile) {
-      setStatus("Por favor seleciona a foto Antes.");
-      return;
-    }
-    if (!afterFile) {
-      setStatus("Por favor seleciona a foto Depois.");
-      return;
-    }
+    if (!beforeFile) { setStatus("Por favor seleciona a foto Antes."); return; }
+    if (!afterFile)  { setStatus("Por favor seleciona a foto Depois."); return; }
 
     setLoading(true);
     setStatus("");
@@ -137,10 +128,7 @@ export function BeforeAfterManager({
         .select("*")
         .single();
 
-      if (error) {
-        setStatus(formatSupabaseError(error));
-        return;
-      }
+      if (error) { setStatus(formatSupabaseError(error)); return; }
 
       setEntries((current) =>
         [data as BeforeAfterHistory, ...current].sort(
@@ -205,35 +193,14 @@ export function BeforeAfterManager({
               onChange={(e) => handleFileChange(e, setAfterPreview)}
             />
 
-            {/* Preview combinado — aparece quando ambas as fotos estão selecionadas */}
+            {/* Preview interactivo com slider — aparece quando ambas as fotos estão prontas */}
             {beforePreview && afterPreview ? (
               <div className="md:col-span-2">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">
-                  Pré-visualização do resultado
+                  Pré-visualização — arrasta para comparar
                 </p>
                 <div className="overflow-hidden rounded-lg border border-stone-200 shadow-sm">
-                  <div className="grid grid-cols-2 divide-x divide-stone-200">
-                    <div className="relative">
-                      <img
-                        src={beforePreview}
-                        alt="Preview antes"
-                        className="h-52 w-full object-cover"
-                      />
-                      <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
-                        Antes
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <img
-                        src={afterPreview}
-                        alt="Preview depois"
-                        className="h-52 w-full object-cover"
-                      />
-                      <span className="absolute bottom-2 right-2 rounded-full bg-blush/90 px-2 py-0.5 text-xs font-semibold text-white">
-                        Depois
-                      </span>
-                    </div>
-                  </div>
+                  <BeforeAfterSlider beforeSrc={beforePreview} afterSrc={afterPreview} height={208} />
                 </div>
               </div>
             ) : null}
@@ -277,9 +244,147 @@ export function BeforeAfterManager({
   );
 }
 
-// ------------------------------------------------------------
-// Dropzone de upload com preview
-// ------------------------------------------------------------
+// ============================================================
+// Comparador deslizante Antes / Depois
+// ============================================================
+
+function BeforeAfterSlider({
+  beforeSrc,
+  afterSrc,
+  height = 192
+}: {
+  beforeSrc: string;
+  afterSrc: string;
+  height?: number;
+}) {
+  const [position, setPosition] = useState(50); // 0–100 %
+  const isDragging = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  function calcPosition(clientX: number) {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    setPosition(pct);
+  }
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    function onMouseMove(e: MouseEvent) {
+      if (!isDragging.current) return;
+      calcPosition(e.clientX);
+    }
+    function onMouseUp() {
+      isDragging.current = false;
+    }
+    function onTouchMove(e: TouchEvent) {
+      if (e.cancelable) e.preventDefault();
+      calcPosition(e.touches[0].clientX);
+    }
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      el.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full select-none overflow-hidden cursor-col-resize"
+      style={{ height }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        isDragging.current = true;
+        calcPosition(e.clientX);
+      }}
+      onTouchStart={(e) => {
+        calcPosition(e.touches[0].clientX);
+      }}
+    >
+      {/* Imagem Antes — camada base, sempre visível em baixo */}
+      <SafeImage
+        src={beforeSrc}
+        alt="Foto antes da transformação"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+
+      {/* Imagem Depois — revelada da esquerda até à posição do slider */}
+      {/* clip-path: inset(top right% bottom left) — clipa da direita (100-position)% */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+      >
+        <SafeImage
+          src={afterSrc}
+          alt="Foto depois da transformação"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
+
+      {/* Linha divisória vertical */}
+      <div
+        className="pointer-events-none absolute top-0 bottom-0 z-10 w-px"
+        style={{
+          left: `${position}%`,
+          transform: "translateX(-50%)",
+          background: "rgba(255,255,255,0.9)",
+          boxShadow: "0 0 8px rgba(0,0,0,0.35)"
+        }}
+      >
+        {/* Handle de arrasto */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-stone-200/80 pointer-events-auto">
+          <ChevronLeft className="h-3.5 w-3.5 text-stone-500" />
+          <ChevronRight className="h-3.5 w-3.5 text-stone-500" />
+        </div>
+      </div>
+
+      {/* Labels */}
+      <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
+        Antes
+      </span>
+      <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-blush/90 px-2 py-0.5 text-xs font-semibold text-white">
+        Depois
+      </span>
+    </div>
+  );
+}
+
+// ============================================================
+// Card de transformação guardada
+// ============================================================
+
+function TransformationCard({ entry }: { entry: BeforeAfterHistory }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <BeforeAfterSlider
+        beforeSrc={entry.before_image_url}
+        afterSrc={entry.after_image_url}
+        height={192}
+      />
+      <div className="p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+          {formatDate(entry.date)}
+        </p>
+        <p className="mt-0.5 text-sm font-medium text-ink">{entry.service}</p>
+        {entry.observations ? (
+          <p className="mt-1 text-xs leading-relaxed text-stone-500">{entry.observations}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Dropzone de upload com preview individual
+// ============================================================
 
 function FileDropzone({
   label,
@@ -336,51 +441,9 @@ function FileDropzone({
   );
 }
 
-// ------------------------------------------------------------
-// Card de transformação guardada
-// ------------------------------------------------------------
-
-function TransformationCard({ entry }: { entry: BeforeAfterHistory }) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-      <div className="grid grid-cols-2 divide-x divide-stone-200">
-        <div className="relative">
-          <SafeImage
-            src={entry.before_image_url}
-            alt="Foto antes da transformação"
-            className="h-48 w-full object-cover"
-          />
-          <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
-            Antes
-          </span>
-        </div>
-        <div className="relative">
-          <SafeImage
-            src={entry.after_image_url}
-            alt="Foto depois da transformação"
-            className="h-48 w-full object-cover"
-          />
-          <span className="absolute bottom-2 right-2 rounded-full bg-blush/90 px-2 py-0.5 text-xs font-semibold text-white">
-            Depois
-          </span>
-        </div>
-      </div>
-      <div className="p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
-          {formatDate(entry.date)}
-        </p>
-        <p className="mt-0.5 text-sm font-medium text-ink">{entry.service}</p>
-        {entry.observations ? (
-          <p className="mt-1 text-xs leading-relaxed text-stone-500">{entry.observations}</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------
+// ============================================================
 // Imagem com fallback elegante
-// ------------------------------------------------------------
+// ============================================================
 
 function SafeImage({ src, alt, className }: { src: string; alt: string; className: string }) {
   const [failed, setFailed] = useState(false);
@@ -406,9 +469,9 @@ function SafeImage({ src, alt, className }: { src: string; alt: string; classNam
   );
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // Campo de texto genérico
-// ------------------------------------------------------------
+// ============================================================
 
 function Field({
   label,
@@ -434,9 +497,9 @@ function Field({
   );
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // Utilitários
-// ------------------------------------------------------------
+// ============================================================
 
 function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
   const parts = [
