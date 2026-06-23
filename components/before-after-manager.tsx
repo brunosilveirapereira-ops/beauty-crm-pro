@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Camera, ImagePlus, Save } from "lucide-react";
+import { Camera, ImageOff, ImagePlus, Save } from "lucide-react";
 import { isDevMode } from "@/lib/supabase";
 import type { BeforeAfterHistory, Customer } from "@/lib/types";
 
@@ -10,6 +10,13 @@ const BUCKET = "customer-transformations";
 const ACCEPTED_MIME = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 type Payload = Omit<BeforeAfterHistory, "id" | "created_at">;
+
+function formatDate(dateStr: string): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+// ------------------------------------------------------------
 
 export function BeforeAfterManager({
   customer,
@@ -26,6 +33,19 @@ export function BeforeAfterManager({
   const [afterPreview, setAfterPreview] = useState<string | null>(null);
   const beforeFileRef = useRef<HTMLInputElement>(null);
   const afterFileRef = useRef<HTMLInputElement>(null);
+
+  function clearFormState() {
+    setBeforePreview(null);
+    setAfterPreview(null);
+    setStatus("");
+    if (beforeFileRef.current) beforeFileRef.current.value = "";
+    if (afterFileRef.current) afterFileRef.current.value = "";
+  }
+
+  function toggleForm() {
+    if (showForm) clearFormState();
+    setShowForm((v) => !v);
+  }
 
   function handleFileChange(
     e: ChangeEvent<HTMLInputElement>,
@@ -129,8 +149,7 @@ export function BeforeAfterManager({
       );
       setStatus("Transformação guardada com sucesso.");
       formElement.reset();
-      setBeforePreview(null);
-      setAfterPreview(null);
+      clearFormState();
       setShowForm(false);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Erro inesperado ao guardar transformação.");
@@ -141,6 +160,7 @@ export function BeforeAfterManager({
 
   return (
     <section className="mt-6 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+      {/* Cabeçalho */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-ink">Antes e Depois</h2>
@@ -148,17 +168,15 @@ export function BeforeAfterManager({
         </div>
         <button
           type="button"
-          onClick={() => {
-            setShowForm((current) => !current);
-            setStatus("");
-          }}
+          onClick={toggleForm}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-blush px-4 py-2.5 text-sm font-semibold text-white hover:bg-blush/90"
         >
           <ImagePlus className="h-4 w-4" />
-          Adicionar Transformação
+          {showForm ? "Cancelar" : "Adicionar Transformação"}
         </button>
       </div>
 
+      {/* Formulário */}
       {showForm ? (
         <form onSubmit={handleSubmit} className="mt-5 rounded-lg border border-stone-200 bg-champagne/40 p-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -187,6 +205,39 @@ export function BeforeAfterManager({
               onChange={(e) => handleFileChange(e, setAfterPreview)}
             />
 
+            {/* Preview combinado — aparece quando ambas as fotos estão selecionadas */}
+            {beforePreview && afterPreview ? (
+              <div className="md:col-span-2">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">
+                  Pré-visualização do resultado
+                </p>
+                <div className="overflow-hidden rounded-lg border border-stone-200 shadow-sm">
+                  <div className="grid grid-cols-2 divide-x divide-stone-200">
+                    <div className="relative">
+                      <img
+                        src={beforePreview}
+                        alt="Preview antes"
+                        className="h-52 w-full object-cover"
+                      />
+                      <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
+                        Antes
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <img
+                        src={afterPreview}
+                        alt="Preview depois"
+                        className="h-52 w-full object-cover"
+                      />
+                      <span className="absolute bottom-2 right-2 rounded-full bg-blush/90 px-2 py-0.5 text-xs font-semibold text-white">
+                        Depois
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <label className="md:col-span-2">
               <span className="text-sm font-medium text-stone-700">Observações</span>
               <textarea
@@ -211,6 +262,7 @@ export function BeforeAfterManager({
         <p className="mt-4 rounded-md bg-champagne px-3 py-2 text-sm text-ink">{status}</p>
       ) : null}
 
+      {/* Galeria de cards */}
       <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {entries.map((entry) => (
           <TransformationCard key={entry.id} entry={entry} />
@@ -224,6 +276,10 @@ export function BeforeAfterManager({
     </section>
   );
 }
+
+// ------------------------------------------------------------
+// Dropzone de upload com preview
+// ------------------------------------------------------------
 
 function FileDropzone({
   label,
@@ -251,7 +307,7 @@ function FileDropzone({
           <button
             type="button"
             onClick={onClear}
-            className="absolute right-2 top-2 rounded-full bg-white/80 px-2 py-0.5 text-xs font-medium text-stone-700 hover:bg-white"
+            className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white"
           >
             Remover
           </button>
@@ -260,11 +316,11 @@ function FileDropzone({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="mt-1 flex h-44 items-center justify-center rounded-md border-2 border-dashed border-stone-300 bg-white hover:border-blush"
+          className="mt-1 flex h-44 items-center justify-center rounded-md border-2 border-dashed border-stone-300 bg-white transition-colors hover:border-blush hover:bg-champagne/20"
         >
           <div className="text-center">
             <Camera className="mx-auto h-6 w-6 text-stone-400" />
-            <p className="mt-1 text-xs text-stone-400">Clica para selecionar</p>
+            <p className="mt-1 text-xs font-medium text-stone-500">Clica para selecionar</p>
             <p className="text-xs text-stone-400">JPG, PNG ou WEBP</p>
           </div>
         </button>
@@ -280,12 +336,16 @@ function FileDropzone({
   );
 }
 
+// ------------------------------------------------------------
+// Card de transformação guardada
+// ------------------------------------------------------------
+
 function TransformationCard({ entry }: { entry: BeforeAfterHistory }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="grid grid-cols-2 divide-x divide-stone-200">
         <div className="relative">
-          <img
+          <SafeImage
             src={entry.before_image_url}
             alt="Foto antes da transformação"
             className="h-48 w-full object-cover"
@@ -295,7 +355,7 @@ function TransformationCard({ entry }: { entry: BeforeAfterHistory }) {
           </span>
         </div>
         <div className="relative">
-          <img
+          <SafeImage
             src={entry.after_image_url}
             alt="Foto depois da transformação"
             className="h-48 w-full object-cover"
@@ -306,15 +366,49 @@ function TransformationCard({ entry }: { entry: BeforeAfterHistory }) {
         </div>
       </div>
       <div className="p-3">
-        <p className="text-xs font-semibold uppercase text-stone-400">{entry.date}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+          {formatDate(entry.date)}
+        </p>
         <p className="mt-0.5 text-sm font-medium text-ink">{entry.service}</p>
         {entry.observations ? (
-          <p className="mt-1 text-xs text-stone-500">{entry.observations}</p>
+          <p className="mt-1 text-xs leading-relaxed text-stone-500">{entry.observations}</p>
         ) : null}
       </div>
     </div>
   );
 }
+
+// ------------------------------------------------------------
+// Imagem com fallback elegante
+// ------------------------------------------------------------
+
+function SafeImage({ src, alt, className }: { src: string; alt: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-stone-100`}>
+        <div className="text-center">
+          <ImageOff className="mx-auto h-6 w-6 text-stone-300" />
+          <p className="mt-1 text-xs text-stone-300">Imagem indisponível</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+// ------------------------------------------------------------
+// Campo de texto genérico
+// ------------------------------------------------------------
 
 function Field({
   label,
@@ -339,6 +433,10 @@ function Field({
     </label>
   );
 }
+
+// ------------------------------------------------------------
+// Utilitários
+// ------------------------------------------------------------
 
 function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
   const parts = [
