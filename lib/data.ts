@@ -3,7 +3,7 @@ import { demoCustomers, demoProfessionals, demoServices } from "./mock-data";
 import { daysSince, isAtRisk } from "./risk";
 import { getSupabaseServerClient } from "./supabase-server";
 import { isSupabaseConfigured } from "./supabase";
-import type { Appointment, ColorHistory, Customer, DashboardStats, ProductHistory, Professional, ServiceHistory, VisitHistory } from "./types";
+import type { Appointment, BeforeAfterHistory, ColorHistory, Customer, DashboardStats, ProductHistory, Professional, ServiceHistory, VisitHistory } from "./types";
 
 export { daysSince, isAtRisk };
 
@@ -150,6 +150,29 @@ export async function getProductHistory(customerId: string): Promise<ProductHist
   }
 
   return data as ProductHistory[];
+}
+
+export async function getBeforeAfterHistory(customerId: string): Promise<BeforeAfterHistory[]> {
+  const supabase = getSupabaseServerClient();
+  if (!isSupabaseConfigured || !supabase) {
+    console.info("[Beauty CRM Pro] Modo local: sem antes e depois Supabase.");
+    return [];
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo antes e depois de public.before_after_history.", { customerId });
+
+  const { data, error } = await supabase
+    .from("before_after_history")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("date", { ascending: false });
+
+  if (error) {
+    console.error("[Beauty CRM Pro] Erro ao ler antes e depois no Supabase:", error);
+    return [];
+  }
+
+  return data as BeforeAfterHistory[];
 }
 
 export async function getAppointmentsByDate(date: string): Promise<Appointment[]> {

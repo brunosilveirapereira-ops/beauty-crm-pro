@@ -191,3 +191,45 @@ create policy "Dev anon can delete appointments"
   on public.appointments for delete
   to anon
   using (true);
+
+alter table public.before_after_history enable row level security;
+
+drop policy if exists "Dev anon can read before_after_history"   on public.before_after_history;
+drop policy if exists "Dev anon can insert before_after_history"  on public.before_after_history;
+drop policy if exists "Dev anon can update before_after_history"  on public.before_after_history;
+drop policy if exists "Dev anon can delete before_after_history"  on public.before_after_history;
+
+create policy "Dev anon can read before_after_history"
+  on public.before_after_history for select
+  to anon
+  using (true);
+
+create policy "Dev anon can insert before_after_history"
+  on public.before_after_history for insert
+  to anon
+  with check (true);
+
+create policy "Dev anon can update before_after_history"
+  on public.before_after_history for update
+  to anon
+  using (true)
+  with check (true);
+
+create policy "Dev anon can delete before_after_history"
+  on public.before_after_history for delete
+  to anon
+  using (true);
+
+-- Dev mode: Storage — bucket customer-transformations
+drop policy if exists "Dev anon can upload transformations"  on storage.objects;
+drop policy if exists "Dev anon can view transformations"    on storage.objects;
+
+create policy "Dev anon can upload transformations"
+  on storage.objects for insert
+  to anon
+  with check (bucket_id = 'customer-transformations');
+
+create policy "Dev anon can view transformations"
+  on storage.objects for select
+  to anon
+  using (bucket_id = 'customer-transformations');

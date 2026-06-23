@@ -83,6 +83,17 @@ export type Appointment = {
   customer?: Pick<Customer, "id" | "name" | "phone" | "whatsapp"> | null;
 };
 
+export type BeforeAfterHistory = {
+  id: string;
+  customer_id: string;
+  date: string;
+  service: string;
+  before_image_url: string;
+  after_image_url: string;
+  observations: string | null;
+  created_at: string;
+};
+
 export type DashboardStats = {
   totalCustomers: number;
   atRiskCustomers: number;

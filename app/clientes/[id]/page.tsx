@@ -2,21 +2,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { BeforeAfterManager } from "@/components/before-after-manager";
 import { ColorHistoryManager } from "@/components/color-history-manager";
 import { PageHeader } from "@/components/page-header";
 import { ProductHistoryManager } from "@/components/product-history-manager";
 import { VisitHistoryManager } from "@/components/visit-history-manager";
-import { getColorHistory, getCustomer, getProductHistory, getProfessionals, getVisitHistory } from "@/lib/data";
+import { getBeforeAfterHistory, getColorHistory, getCustomer, getProductHistory, getProfessionals, getVisitHistory } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
-  const [customer, visits, colors, products, professionals] = await Promise.all([
+  const [customer, visits, colors, products, professionals, beforeAfter] = await Promise.all([
     getCustomer(params.id),
     getVisitHistory(params.id),
     getColorHistory(params.id),
     getProductHistory(params.id),
-    getProfessionals()
+    getProfessionals(),
+    getBeforeAfterHistory(params.id)
   ]);
 
   if (!customer) notFound();
@@ -50,6 +52,8 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
       <ProductHistoryManager customer={customer} initialProducts={products} />
 
       <ColorHistoryManager customer={customer} initialColors={colors} />
+
+      <BeforeAfterManager customer={customer} initialEntries={beforeAfter} />
     </AppShell>
   );
 }
