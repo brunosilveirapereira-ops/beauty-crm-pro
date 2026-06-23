@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Camera, ChevronLeft, ChevronRight, ImageOff, ImagePlus, Save } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, ImageOff, ImagePlus, Save, X } from "lucide-react";
 import { isDevMode } from "@/lib/supabase";
 import type { BeforeAfterHistory, Customer } from "@/lib/types";
 
@@ -33,6 +33,7 @@ export function BeforeAfterManager({
   const [loading, setLoading] = useState(false);
   const [beforePreview, setBeforePreview] = useState<string | null>(null);
   const [afterPreview, setAfterPreview] = useState<string | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<BeforeAfterHistory | null>(null);
   const beforeFileRef = useRef<HTMLInputElement>(null);
   const afterFileRef = useRef<HTMLInputElement>(null);
 
@@ -147,100 +148,195 @@ export function BeforeAfterManager({
   }
 
   return (
-    <section className="mt-6 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
-      {/* Cabeçalho */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-ink">Antes e Depois</h2>
-          <p className="mt-1 text-sm text-stone-500">Histórico visual de transformações por atendimento.</p>
+    <>
+      <section className="mt-6 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+        {/* Cabeçalho */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-ink">Antes e Depois</h2>
+            <p className="mt-1 text-sm text-stone-500">Histórico visual de transformações por atendimento.</p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleForm}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-blush px-4 py-2.5 text-sm font-semibold text-white hover:bg-blush/90"
+          >
+            <ImagePlus className="h-4 w-4" />
+            {showForm ? "Cancelar" : "Adicionar Transformação"}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={toggleForm}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blush px-4 py-2.5 text-sm font-semibold text-white hover:bg-blush/90"
-        >
-          <ImagePlus className="h-4 w-4" />
-          {showForm ? "Cancelar" : "Adicionar Transformação"}
-        </button>
-      </div>
 
-      {/* Formulário */}
-      {showForm ? (
-        <form onSubmit={handleSubmit} className="mt-5 rounded-lg border border-stone-200 bg-champagne/40 p-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Data" name="date" type="date" required />
-            <Field label="Serviço realizado" name="service" required />
+        {/* Formulário */}
+        {showForm ? (
+          <form onSubmit={handleSubmit} className="mt-5 rounded-lg border border-stone-200 bg-champagne/40 p-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Data" name="date" type="date" required />
+              <Field label="Serviço realizado" name="service" required />
 
-            <FileDropzone
-              label="Foto Antes"
-              preview={beforePreview}
-              fileRef={beforeFileRef}
-              onClear={() => {
-                setBeforePreview(null);
-                if (beforeFileRef.current) beforeFileRef.current.value = "";
-              }}
-              onChange={(e) => handleFileChange(e, setBeforePreview)}
-            />
-
-            <FileDropzone
-              label="Foto Depois"
-              preview={afterPreview}
-              fileRef={afterFileRef}
-              onClear={() => {
-                setAfterPreview(null);
-                if (afterFileRef.current) afterFileRef.current.value = "";
-              }}
-              onChange={(e) => handleFileChange(e, setAfterPreview)}
-            />
-
-            {/* Preview interactivo com slider — aparece quando ambas as fotos estão prontas */}
-            {beforePreview && afterPreview ? (
-              <div className="md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">
-                  Pré-visualização — arrasta para comparar
-                </p>
-                <div className="overflow-hidden rounded-lg border border-stone-200 shadow-sm">
-                  <BeforeAfterSlider beforeSrc={beforePreview} afterSrc={afterPreview} height={208} />
-                </div>
-              </div>
-            ) : null}
-
-            <label className="md:col-span-2">
-              <span className="text-sm font-medium text-stone-700">Observações</span>
-              <textarea
-                className="focus-ring mt-1 min-h-24 w-full rounded-md border border-stone-300 px-3 py-2.5 text-sm"
-                name="observations"
+              <FileDropzone
+                label="Foto Antes"
+                preview={beforePreview}
+                fileRef={beforeFileRef}
+                onClear={() => {
+                  setBeforePreview(null);
+                  if (beforeFileRef.current) beforeFileRef.current.value = "";
+                }}
+                onChange={(e) => handleFileChange(e, setBeforePreview)}
               />
-            </label>
-          </div>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-stone-600">{status}</p>
-            <button
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-graphite disabled:opacity-60"
-            >
-              <Save className="h-4 w-4" />
-              {loading ? "A guardar..." : "Guardar transformação"}
-            </button>
-          </div>
-        </form>
-      ) : status ? (
-        <p className="mt-4 rounded-md bg-champagne px-3 py-2 text-sm text-ink">{status}</p>
-      ) : null}
+              <FileDropzone
+                label="Foto Depois"
+                preview={afterPreview}
+                fileRef={afterFileRef}
+                onClear={() => {
+                  setAfterPreview(null);
+                  if (afterFileRef.current) afterFileRef.current.value = "";
+                }}
+                onChange={(e) => handleFileChange(e, setAfterPreview)}
+              />
 
-      {/* Galeria de cards */}
-      <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {entries.map((entry) => (
-          <TransformationCard key={entry.id} entry={entry} />
-        ))}
-        {entries.length === 0 ? (
-          <p className="col-span-full py-8 text-center text-sm text-stone-500">
-            Ainda não existem transformações registadas.
-          </p>
+              {/* Preview interactivo com slider */}
+              {beforePreview && afterPreview ? (
+                <div className="md:col-span-2">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">
+                    Pré-visualização — arrasta para comparar
+                  </p>
+                  <div className="overflow-hidden rounded-lg border border-stone-200 shadow-sm">
+                    <BeforeAfterSlider beforeSrc={beforePreview} afterSrc={afterPreview} height={208} />
+                  </div>
+                </div>
+              ) : null}
+
+              <label className="md:col-span-2">
+                <span className="text-sm font-medium text-stone-700">Observações</span>
+                <textarea
+                  className="focus-ring mt-1 min-h-24 w-full rounded-md border border-stone-300 px-3 py-2.5 text-sm"
+                  name="observations"
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-stone-600">{status}</p>
+              <button
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-graphite disabled:opacity-60"
+              >
+                <Save className="h-4 w-4" />
+                {loading ? "A guardar..." : "Guardar transformação"}
+              </button>
+            </div>
+          </form>
+        ) : status ? (
+          <p className="mt-4 rounded-md bg-champagne px-3 py-2 text-sm text-ink">{status}</p>
         ) : null}
+
+        {/* Galeria de cards */}
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {entries.map((entry) => (
+            <TransformationCard
+              key={entry.id}
+              entry={entry}
+              onOpen={() => setSelectedEntry(entry)}
+            />
+          ))}
+          {entries.length === 0 ? (
+            <p className="col-span-full py-8 text-center text-sm text-stone-500">
+              Ainda não existem transformações registadas.
+            </p>
+          ) : null}
+        </div>
+      </section>
+
+      {/* Modal de detalhe */}
+      {selectedEntry ? (
+        <TransformationModal
+          entry={selectedEntry}
+          onClose={() => setSelectedEntry(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+// ============================================================
+// Modal de visualização premium
+// ============================================================
+
+function TransformationModal({
+  entry,
+  onClose
+}: {
+  entry: BeforeAfterHistory;
+  onClose: () => void;
+}) {
+  // ESC para fechar + lock de scroll do body
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  // onClose chama apenas setSelectedEntry(null) — setter estável, sem risco de closure stale
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      // Fechar ao clicar no overlay (fora do painel)
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+
+        {/* Cabeçalho */}
+        <div className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-stone-100 px-6 py-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+              {formatDate(entry.date)}
+            </p>
+            <h3 className="mt-1 text-lg font-semibold leading-snug text-ink">
+              {entry.service}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Slider em tamanho grande */}
+        <div className="flex-shrink-0">
+          <BeforeAfterSlider
+            beforeSrc={entry.before_image_url}
+            afterSrc={entry.after_image_url}
+            height={420}
+          />
+        </div>
+
+        {/* Observações — só se existirem */}
+        {entry.observations ? (
+          <div className="flex-shrink-0 border-t border-stone-100 px-6 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+              Observações
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-stone-600">
+              {entry.observations}
+            </p>
+          </div>
+        ) : null}
+
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -257,7 +353,7 @@ function BeforeAfterSlider({
   afterSrc: string;
   height?: number;
 }) {
-  const [position, setPosition] = useState(50); // 0–100 %
+  const [position, setPosition] = useState(50);
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -300,6 +396,8 @@ function BeforeAfterSlider({
       ref={containerRef}
       className="relative w-full select-none overflow-hidden cursor-col-resize"
       style={{ height }}
+      // Impede que cliques no slider propaguem para o card pai
+      onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => {
         e.preventDefault();
         isDragging.current = true;
@@ -309,15 +407,14 @@ function BeforeAfterSlider({
         calcPosition(e.touches[0].clientX);
       }}
     >
-      {/* Imagem Antes — camada base, sempre visível em baixo */}
+      {/* Imagem Antes — camada base */}
       <SafeImage
         src={beforeSrc}
         alt="Foto antes da transformação"
         className="absolute inset-0 h-full w-full object-cover"
       />
 
-      {/* Imagem Depois — revelada da esquerda até à posição do slider */}
-      {/* clip-path: inset(top right% bottom left) — clipa da direita (100-position)% */}
+      {/* Imagem Depois — revelada até à posição do slider */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
@@ -329,7 +426,7 @@ function BeforeAfterSlider({
         />
       </div>
 
-      {/* Linha divisória vertical */}
+      {/* Linha divisória */}
       <div
         className="pointer-events-none absolute top-0 bottom-0 z-10 w-px"
         style={{
@@ -339,8 +436,8 @@ function BeforeAfterSlider({
           boxShadow: "0 0 8px rgba(0,0,0,0.35)"
         }}
       >
-        {/* Handle de arrasto */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-stone-200/80 pointer-events-auto">
+        {/* Handle */}
+        <div className="pointer-events-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-stone-200/80">
           <ChevronLeft className="h-3.5 w-3.5 text-stone-500" />
           <ChevronRight className="h-3.5 w-3.5 text-stone-500" />
         </div>
@@ -358,25 +455,42 @@ function BeforeAfterSlider({
 }
 
 // ============================================================
-// Card de transformação guardada
+// Card de transformação — clicável para abrir modal
 // ============================================================
 
-function TransformationCard({ entry }: { entry: BeforeAfterHistory }) {
+function TransformationCard({
+  entry,
+  onOpen
+}: {
+  entry: BeforeAfterHistory;
+  onOpen: () => void;
+}) {
   return (
-    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <div
+      className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition-all duration-150 hover:border-stone-300 hover:shadow-md cursor-pointer"
+      onClick={onOpen}
+    >
+      {/* Slider — onClick com stopPropagation interno para não abrir modal ao arrastar */}
       <BeforeAfterSlider
         beforeSrc={entry.before_image_url}
         afterSrc={entry.after_image_url}
         height={192}
       />
+
+      {/* Info do card */}
       <div className="p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
           {formatDate(entry.date)}
         </p>
         <p className="mt-0.5 text-sm font-medium text-ink">{entry.service}</p>
         {entry.observations ? (
-          <p className="mt-1 text-xs leading-relaxed text-stone-500">{entry.observations}</p>
+          <p className="mt-1 text-xs leading-relaxed text-stone-500 line-clamp-2">
+            {entry.observations}
+          </p>
         ) : null}
+        <p className="mt-2 text-xs font-medium text-blush">
+          Clica para ver em detalhe →
+        </p>
       </div>
     </div>
   );
