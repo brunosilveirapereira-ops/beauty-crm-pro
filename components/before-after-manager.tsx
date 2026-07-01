@@ -292,7 +292,10 @@ function TransformationModal({
       // Fechar ao clicar no overlay (fora do painel)
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div
+        className="relative flex w-full flex-col rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto"
+        style={{ maxWidth: "min(1400px, 90vw)" }}
+      >
 
         {/* Cabeçalho */}
         <div className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-stone-100 px-6 py-5">
@@ -319,7 +322,7 @@ function TransformationModal({
           <BeforeAfterSlider
             beforeSrc={entry.before_image_url}
             afterSrc={entry.after_image_url}
-            height={420}
+            height="clamp(300px, 65vh, 720px)"
           />
         </div>
 
@@ -351,7 +354,7 @@ function BeforeAfterSlider({
 }: {
   beforeSrc: string;
   afterSrc: string;
-  height?: number;
+  height?: number | string;
 }) {
   const [position, setPosition] = useState(50);
   const isDragging = useRef(false);
