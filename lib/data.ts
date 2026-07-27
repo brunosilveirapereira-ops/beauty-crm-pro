@@ -1,6 +1,7 @@
 import { calculateMonthlyCommissionSummary, getCurrentMonthKey } from "./commissions";
 import { demoCustomers, demoProfessionals, demoServices } from "./mock-data";
 import { daysSince, isAtRisk } from "./risk";
+import { getCurrentSalonId } from "./salon";
 import { getSupabaseServerClient } from "./supabase-server";
 import { isSupabaseConfigured } from "./supabase";
 import type { Appointment, BeforeAfterHistory, ColorHistory, Customer, DashboardStats, ProductHistory, Professional, ServiceHistory, VisitHistory } from "./types";
@@ -14,9 +15,19 @@ export async function getCustomers(): Promise<Customer[]> {
     return demoCustomers;
   }
 
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo clientes de public.customers.");
+  const salonId = await getCurrentSalonId();
+  if (!salonId) {
+    console.info("[Beauty CRM Pro] Sem salao resolvido para o utilizador atual: a devolver lista vazia de clientes.");
+    return [];
+  }
 
-  const { data, error } = await supabase.from("customers").select("*").order("created_at", { ascending: false });
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo clientes de public.customers.", { salonId });
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("salon_id", salonId)
+    .order("created_at", { ascending: false });
   if (error) {
     console.error("[Beauty CRM Pro] Erro ao ler clientes do Supabase:", error);
     return [];
@@ -32,9 +43,20 @@ export async function getCustomer(customerId: string): Promise<Customer | null> 
     return demoCustomers.find((customer) => customer.id === customerId) ?? null;
   }
 
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo cliente de public.customers.", { customerId });
+  const salonId = await getCurrentSalonId();
+  if (!salonId) {
+    console.info("[Beauty CRM Pro] Sem salao resolvido para o utilizador atual: a devolver cliente nulo.");
+    return null;
+  }
 
-  const { data, error } = await supabase.from("customers").select("*").eq("id", customerId).single();
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo cliente de public.customers.", { customerId, salonId });
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("id", customerId)
+    .eq("salon_id", salonId)
+    .single();
   if (error) {
     console.error("[Beauty CRM Pro] Erro ao ler cliente do Supabase:", error);
     return null;
