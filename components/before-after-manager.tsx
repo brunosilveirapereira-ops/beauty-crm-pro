@@ -293,12 +293,12 @@ function TransformationModal({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative flex w-full flex-col rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto"
-        style={{ maxWidth: "min(1400px, 90vw)" }}
+        className="relative flex w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        style={{ maxWidth: "min(1400px, 90vw)", height: "90vh" }}
       >
 
         {/* Cabeçalho */}
-        <div className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-stone-100 px-6 py-5">
+        <div className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-stone-100 px-6 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
               {formatDate(entry.date)}
@@ -317,18 +317,19 @@ function TransformationModal({
           </button>
         </div>
 
-        {/* Slider em tamanho grande */}
-        <div className="flex-shrink-0">
+        {/* Slider em tamanho grande — ocupa a altura útil do modal, fundo escuro para contraste */}
+        <div className="relative min-h-0 flex-1 bg-neutral-900">
           <BeforeAfterSlider
             beforeSrc={entry.before_image_url}
             afterSrc={entry.after_image_url}
-            height="clamp(300px, 65vh, 720px)"
+            height="100%"
+            fit="contain"
           />
         </div>
 
         {/* Observações — só se existirem */}
         {entry.observations ? (
-          <div className="flex-shrink-0 border-t border-stone-100 px-6 py-4">
+          <div className="flex-shrink-0 overflow-y-auto border-t border-stone-100 px-6 py-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
               Observações
             </p>
@@ -350,12 +351,15 @@ function TransformationModal({
 function BeforeAfterSlider({
   beforeSrc,
   afterSrc,
-  height = 192
+  height = 192,
+  fit = "cover"
 }: {
   beforeSrc: string;
   afterSrc: string;
   height?: number | string;
+  fit?: "cover" | "contain";
 }) {
+  const imageFitClass = fit === "contain" ? "object-contain bg-neutral-900" : "object-cover";
   const [position, setPosition] = useState(50);
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -414,7 +418,7 @@ function BeforeAfterSlider({
       <SafeImage
         src={beforeSrc}
         alt="Foto antes da transformação"
-        className="absolute inset-0 h-full w-full object-cover"
+        className={`absolute inset-0 h-full w-full ${imageFitClass}`}
       />
 
       {/* Imagem Depois — revelada até à posição do slider */}
@@ -425,7 +429,7 @@ function BeforeAfterSlider({
         <SafeImage
           src={afterSrc}
           alt="Foto depois da transformação"
-          className="absolute inset-0 h-full w-full object-cover"
+          className={`absolute inset-0 h-full w-full ${imageFitClass}`}
         />
       </div>
 
