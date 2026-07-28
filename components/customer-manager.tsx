@@ -4,9 +4,9 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Eye, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { CustomerForm } from "@/components/customer-form";
+import { deleteCustomer } from "@/lib/customer-actions";
 import { deletedCustomersStorageKey, localCustomersStorageKey, mergeById } from "@/lib/risk";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { openWhatsappWithFallback, whatsappRecoveryLinks } from "@/lib/whatsapp";
@@ -69,15 +69,16 @@ export function CustomerManager({ initialCustomers }: { initialCustomers: Custom
     if (!confirmed) return;
 
     if (isSupabaseConfigured) {
+      // O salon_id e resolvido e validado no servidor (deleteCustomer), nunca
+      // no browser — o delete filtra sempre por id E salon_id, nunca so por id.
       console.info("[Beauty CRM Pro] Supabase conectado: apagando cliente de public.customers.", {
         customerId: customer.id
       });
-      const supabase = createClientComponentClient();
-      const { error } = await supabase.from("customers").delete().eq("id", customer.id);
+      const result = await deleteCustomer(customer.id);
 
-      if (error) {
-        console.error("[Beauty CRM Pro] Erro ao apagar cliente no Supabase:", error);
-        setDeleteStatus(error.message);
+      if (!result.success) {
+        console.error("[Beauty CRM Pro] Erro ao apagar cliente no Supabase:", result.error);
+        setDeleteStatus(result.error);
         return;
       }
     } else {

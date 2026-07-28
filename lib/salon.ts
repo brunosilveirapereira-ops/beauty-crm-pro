@@ -1,6 +1,8 @@
 import { getSupabaseServerClient } from "./supabase-server";
 import { isSupabaseConfigured } from "./supabase";
 
+type SupabaseServerClient = NonNullable<ReturnType<typeof getSupabaseServerClient>>;
+
 /**
  * Resolve o salon_id do utilizador autenticado, a partir de duas fontes
  * possiveis (uniao, tal como current_salon_ids() ao nivel da base de dados):
@@ -11,13 +13,20 @@ import { isSupabaseConfigured } from "./supabase";
  * Devolve null (nunca lanca excecao) quando: Supabase nao esta configurado,
  * nao ha sessao autenticada, ou o utilizador nao tem nenhuma membership.
  * Quem chama decide como tratar o null (bloquear a acao, mostrar erro, etc.).
+ *
+ * Aceita opcionalmente um client Supabase ja criado. Isto e necessario para
+ * Server Actions/Route Handlers: esses contextos precisam de
+ * createServerActionClient() (le E escreve cookies, para poder renovar a
+ * sessao), enquanto Server Components (o uso por omissao, via
+ * getSupabaseServerClient()) so podem ler cookies. Usar o client errado
+ * pode deixar a sessao inconsistente nesse contexto.
  */
-export async function getCurrentSalonId(): Promise<string | null> {
+export async function getCurrentSalonId(client?: SupabaseServerClient): Promise<string | null> {
   if (!isSupabaseConfigured) {
     return null;
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = client ?? getSupabaseServerClient();
   if (!supabase) {
     return null;
   }
@@ -32,6 +41,8 @@ export async function getCurrentSalonId(): Promise<string | null> {
     return null;
   }
 
+  console.info("[Beauty CRM Pro] getCurrentSalonId: utilizador autenticado.", { userId: user.id });
+
   const { data: directMembership, error: directError } = await supabase
     .from("salon_members")
     .select("salon_id")
@@ -45,6 +56,9 @@ export async function getCurrentSalonId(): Promise<string | null> {
   }
 
   if (directMembership?.salon_id) {
+    console.info("[Beauty CRM Pro] getCurrentSalonId: resolvido via salon_members.", {
+      salonId: directMembership.salon_id
+    });
     return directMembership.salon_id as string;
   }
 
@@ -81,5 +95,6 @@ export async function getCurrentSalonId(): Promise<string | null> {
     return null;
   }
 
+  console.info("[Beauty CRM Pro] getCurrentSalonId: resolvido via company_members.", { salonId: companySalon.id });
   return companySalon.id as string;
 }

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Save } from "lucide-react";
+import { createCustomer, updateCustomer } from "@/lib/customer-actions";
 import { isDevMode, isSupabaseConfigured } from "@/lib/supabase";
 import type { Customer } from "@/lib/types";
 
@@ -72,41 +72,70 @@ export function CustomerForm({
       return;
     }
 
-    const editingCustomerId = editingCustomer?.id;
-    if (isEditing && !editingCustomerId) {
-      setStatus("Nao foi possivel identificar o cliente para atualizar.");
+    if (isEditing) {
+      const editingCustomerId = editingCustomer?.id;
+      if (!editingCustomerId) {
+        setStatus("Nao foi possivel identificar o cliente para atualizar.");
+        return;
+      }
+
+      // Edicao: o salon_id e resolvido e validado no servidor (updateCustomer),
+      // nunca no browser — o update filtra sempre por id E salon_id, nunca so por id.
+      console.info("[Beauty CRM Pro] Supabase conectado: gravando cliente em public.customers.", {
+        action: "update",
+        customerId: editingCustomerId,
+        devMode: isDevMode,
+        table: "customers",
+        payload
+      });
+
+      const result = await updateCustomer(editingCustomerId, payload);
+
+      if (result.error !== null) {
+        console.error("[Beauty CRM Pro] Erro ao gravar cliente no Supabase:", {
+          action: "update",
+          table: "customers",
+          devMode: isDevMode,
+          payload,
+          error: result.error
+        });
+        setStatus(result.error);
+        return;
+      }
+
+      onCustomerSaved(result.data);
+      setStatus("Cliente atualizado com sucesso.");
+      formElement.reset();
+      onCancelEdit();
+      router.refresh();
       return;
     }
 
+    // Criacao: o salon_id e resolvido e validado no servidor (createCustomer),
+    // nunca no browser — garante que nunca existe um insert sem salon_id.
     console.info("[Beauty CRM Pro] Supabase conectado: gravando cliente em public.customers.", {
-      action: isEditing ? "update" : "insert",
-      customerId: editingCustomerId,
+      action: "insert",
       devMode: isDevMode,
       table: "customers",
       payload
     });
-    const supabase = createClientComponentClient();
-    const query = isEditing
-      ? supabase.from("customers").update(payload).eq("id", editingCustomerId as string).select("*").single()
-      : supabase.from("customers").insert(payload).select("*").single();
 
-    const { data, error } = await query;
+    const result = await createCustomer(payload);
 
-    if (error) {
-      const visibleError = formatSupabaseError(error);
+    if (result.error !== null) {
       console.error("[Beauty CRM Pro] Erro ao gravar cliente no Supabase:", {
-        action: isEditing ? "update" : "insert",
+        action: "insert",
         table: "customers",
         devMode: isDevMode,
         payload,
-        error
+        error: result.error
       });
-      setStatus(visibleError);
+      setStatus(result.error);
       return;
     }
 
-    onCustomerSaved(data as Customer);
-    setStatus(isEditing ? "Cliente atualizado com sucesso." : "Cliente guardado com sucesso.");
+    onCustomerSaved(result.data);
+    setStatus("Cliente guardado com sucesso.");
     formElement.reset();
     onCancelEdit();
     router.refresh();
@@ -153,17 +182,6 @@ export function CustomerForm({
       </div>
     </form>
   );
-}
-
-function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
-  const parts = [
-    `Erro Supabase: ${error.message}`,
-    error.code ? `Codigo: ${error.code}` : null,
-    error.details ? `Detalhes: ${error.details}` : null,
-    error.hint ? `Hint: ${error.hint}` : null
-  ].filter(Boolean);
-
-  return parts.join(" | ");
 }
 
 function setFieldValue(form: HTMLFormElement, name: string, value: string | null) {
