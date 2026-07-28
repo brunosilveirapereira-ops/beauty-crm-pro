@@ -94,9 +94,19 @@ export async function getProfessionals(): Promise<Professional[]> {
     return demoProfessionals;
   }
 
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo profissionais de public.professionals.");
+  const salonId = await getCurrentSalonId();
+  if (!salonId) {
+    console.info("[Beauty CRM Pro] Sem salao resolvido para o utilizador atual: a devolver lista vazia de profissionais.");
+    return [];
+  }
 
-  const { data, error } = await supabase.from("professionals").select("*").order("name", { ascending: true });
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo profissionais de public.professionals.", { salonId });
+
+  const { data, error } = await supabase
+    .from("professionals")
+    .select("*")
+    .eq("salon_id", salonId)
+    .order("name", { ascending: true });
   if (error) {
     console.error("[Beauty CRM Pro] Erro ao ler profissionais do Supabase:", error);
     return [];

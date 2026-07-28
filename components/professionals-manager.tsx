@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Pencil, Save, UserMinus } from "lucide-react";
 import { buildCommissionReport, getCurrentMonthKey } from "@/lib/commissions";
+import { createProfessional, deactivateProfessional, updateProfessional } from "@/lib/professional-actions";
 import { isDevMode, isSupabaseConfigured } from "@/lib/supabase";
 import type { Professional, ServiceHistory } from "@/lib/types";
 
@@ -90,32 +90,63 @@ export function ProfessionalsManager({
       return;
     }
 
+    if (editingProfessional) {
+      // Edicao: o salon_id e resolvido e validado no servidor (updateProfessional),
+      // nunca no browser — o update filtra sempre por id E salon_id, nunca so por id.
+      console.info("[Beauty CRM Pro] Supabase conectado: gravando profissional em public.professionals.", {
+        action: "update",
+        table: "professionals",
+        devMode: isDevMode,
+        payload
+      });
+
+      const result = await updateProfessional(editingProfessional.id, payload);
+
+      if (result.error !== null) {
+        console.error("[Beauty CRM Pro] Erro ao gravar profissional no Supabase:", {
+          action: "update",
+          table: "professionals",
+          devMode: isDevMode,
+          payload,
+          error: result.error
+        });
+        setStatus(result.error);
+        return;
+      }
+
+      setProfessionals((current) => upsertProfessional(current, result.data));
+      setEditingProfessional(null);
+      setStatus("Profissional atualizado com sucesso.");
+      formElement.reset();
+      return;
+    }
+
+    // Criacao: o salon_id e resolvido e validado no servidor (createProfessional),
+    // nunca no browser — garante que nunca existe um insert sem salon_id.
     console.info("[Beauty CRM Pro] Supabase conectado: gravando profissional em public.professionals.", {
+      action: "insert",
       table: "professionals",
       devMode: isDevMode,
       payload
     });
 
-    const supabase = createClientComponentClient();
-    const query = editingProfessional
-      ? supabase.from("professionals").update(payload).eq("id", editingProfessional.id).select("*").single()
-      : supabase.from("professionals").insert(payload).select("*").single();
+    const result = await createProfessional(payload);
 
-    const { data, error } = await query;
-    if (error) {
+    if (result.error !== null) {
       console.error("[Beauty CRM Pro] Erro ao gravar profissional no Supabase:", {
+        action: "insert",
         table: "professionals",
         devMode: isDevMode,
         payload,
-        error
+        error: result.error
       });
-      setStatus(formatSupabaseError(error));
+      setStatus(result.error);
       return;
     }
 
-    setProfessionals((current) => upsertProfessional(current, data as Professional));
+    setProfessionals((current) => upsertProfessional(current, result.data));
     setEditingProfessional(null);
-    setStatus(editingProfessional ? "Profissional atualizado com sucesso." : "Profissional criado com sucesso.");
+    setStatus("Profissional criado com sucesso.");
     formElement.reset();
   }
 
@@ -129,21 +160,22 @@ export function ProfessionalsManager({
       return;
     }
 
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase.from("professionals").update({ active: false }).eq("id", professional.id).select("*").single();
+    // A desativacao filtra sempre por id E salon_id do utilizador autenticado,
+    // resolvido no servidor (deactivateProfessional) — nunca so por id.
+    const result = await deactivateProfessional(professional.id);
 
-    if (error) {
+    if (result.error !== null) {
       console.error("[Beauty CRM Pro] Erro ao desativar profissional no Supabase:", {
         table: "professionals",
         devMode: isDevMode,
         professionalId: professional.id,
-        error
+        error: result.error
       });
-      setStatus(formatSupabaseError(error));
+      setStatus(result.error);
       return;
     }
 
-    setProfessionals((current) => upsertProfessional(current, data as Professional));
+    setProfessionals((current) => upsertProfessional(current, result.data));
     setStatus("Profissional desativado com sucesso.");
   }
 
@@ -348,13 +380,3 @@ function Field({
   );
 }
 
-function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
-  const parts = [
-    `Erro Supabase: ${error.message}`,
-    error.code ? `Codigo: ${error.code}` : null,
-    error.details ? `Detalhes: ${error.details}` : null,
-    error.hint ? `Hint: ${error.hint}` : null
-  ].filter(Boolean);
-
-  return parts.join(" | ");
-}
