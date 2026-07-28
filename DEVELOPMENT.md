@@ -64,6 +64,15 @@ Preferir:
 - Nunca operar apenas por id quando o registo pertence a um salão.
 - Se não existir contexto válido, a operação deve ser interrompida com erro claro.
 
+## Dependências entre módulos
+
+Durante a migração multi-tenant:
+
+- Não resolver dependências de módulos que ainda não estão a ser migrados.
+- Registar essas dependências para serem tratadas quando o respetivo módulo entrar em migração.
+- Evitar criar soluções temporárias entre módulos.
+- Cada módulo deve ficar completo e consistente antes de iniciar alterações noutro módulo.
+
 ## Roadmap
 - Novas ideias não interrompem a fase atual.
 - Devem ser registadas para implementação futura.
