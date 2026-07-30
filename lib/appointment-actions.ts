@@ -106,3 +106,54 @@ export async function createAppointment(payload: NewAppointmentInput): Promise<C
 
   return { data: data as Appointment, error: null };
 }
+
+export type UpdateAppointmentResult =
+  | { data: Appointment; error: null }
+  | { data: null; error: string };
+
+/**
+ * Atualiza uma marcacao existente, sempre restrita ao salon_id do
+ * utilizador autenticado. Corre no servidor (server action) pela mesma
+ * razao de createAppointment(): getCurrentSalonId() so pode ser resolvido
+ * aqui. O filtro .eq("salon_id", salonId) e obrigatorio — sem ele, o id
+ * sozinho permitiria editar uma marcacao de outro salao. O salon_id nunca
+ * e aceite vindo do browser: e sempre resolvido no servidor a partir da
+ * sessao autenticada.
+ */
+export async function updateAppointment(
+  appointmentId: string,
+  payload: NewAppointmentInput
+): Promise<UpdateAppointmentResult> {
+  if (!isSupabaseConfigured) {
+    return {
+      data: null,
+      error: "Supabase nao esta configurado."
+    };
+  }
+
+  const supabase = createServerActionClient({ cookies });
+
+  const salonId = await getCurrentSalonId(supabase);
+
+  if (!salonId) {
+    return {
+      data: null,
+      error: "Nao foi possivel identificar o salao do utilizador atual. A marcacao nao foi atualizada."
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("appointments")
+    .update(payload)
+    .eq("id", appointmentId)
+    .eq("salon_id", salonId)
+    .select("*, customer:customers(id, name, phone, whatsapp)")
+    .single();
+
+  if (error) {
+    const details = [error.message, error.code ? `Codigo: ${error.code}` : null].filter(Boolean).join(" | ");
+    return { data: null, error: `Erro Supabase: ${details}` };
+  }
+
+  return { data: data as Appointment, error: null };
+}

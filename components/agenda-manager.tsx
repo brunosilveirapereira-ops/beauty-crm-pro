@@ -3,7 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Pencil, Save, Trash2 } from "lucide-react";
-import { createAppointment, getAppointmentsByDateAction } from "@/lib/appointment-actions";
+import { createAppointment, getAppointmentsByDateAction, updateAppointment } from "@/lib/appointment-actions";
 import { isDevMode, isSupabaseConfigured } from "@/lib/supabase";
 import type { Appointment, Customer } from "@/lib/types";
 
@@ -91,31 +91,27 @@ export function AgendaManager({
         payload
       });
 
-      const supabase = createClientComponentClient();
-      const { data, error } = await supabase
-        .from("appointments")
-        .update(payload)
-        .eq("id", editingAppointment.id)
-        .select("*, customer:customers(id, name, phone, whatsapp)")
-        .single();
+      // Edicao: o salon_id e resolvido e validado no servidor
+      // (updateAppointment), que filtra o update por id E salon_id — nunca
+      // e possivel editar uma marcacao de outro salao apenas pelo id.
+      const result = await updateAppointment(editingAppointment.id, payload);
 
-      if (error) {
+      if (result.error !== null) {
         console.error("[Beauty CRM Pro] Erro ao gravar marcacao:", {
           table: "appointments",
           devMode: isDevMode,
           payload,
-          error
+          error: result.error
         });
-        setStatus(formatSupabaseError(error));
+        setStatus(result.error);
         return;
       }
 
-      const savedAppointment = data as Appointment;
       setAppointments((current) => {
-        const withoutCurrent = current.filter((appointment) => appointment.id !== savedAppointment.id);
-        return [...withoutCurrent, savedAppointment];
+        const withoutCurrent = current.filter((appointment) => appointment.id !== result.data.id);
+        return [...withoutCurrent, result.data];
       });
-      setSelectedDate(savedAppointment.appointment_date);
+      setSelectedDate(result.data.appointment_date);
       setEditingAppointment(null);
       setStatus("Marcação atualizada com sucesso.");
       formElement.reset();
