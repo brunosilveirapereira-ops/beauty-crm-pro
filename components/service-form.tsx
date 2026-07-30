@@ -2,10 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Save } from "lucide-react";
+import { createServiceHistory } from "@/lib/service-history-actions";
 import { localServicesStorageKey } from "@/lib/risk";
-import { isDevMode, isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import type { Customer, Professional, ServiceHistory } from "@/lib/types";
 
 type ServicePayload = Omit<ServiceHistory, "id" | "customer">;
@@ -60,32 +60,23 @@ export function ServiceForm({
       return;
     }
 
-    console.info("[Beauty CRM Pro] Supabase conectado: gravando servico em public.service_history.", {
-      customerId,
-      devMode: isDevMode,
-      table: "service_history",
-      payload
-    });
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase
-      .from("service_history")
-      .insert(payload)
-      .select("*, customer:customers(id, name, whatsapp), professional_profile:professionals(id, name, commission_percentage, active)")
-      .single();
+    // Criacao: o salon_id e resolvido e validado no servidor
+    // (createServiceHistory), nunca no browser — garante que nunca existe
+    // um insert sem salon_id.
+    const result = await createServiceHistory(payload);
 
-    if (error) {
-      const visibleError = formatSupabaseError(error);
+    if (result.error !== null) {
       console.error("[Beauty CRM Pro] Erro ao gravar servico no Supabase:", {
         table: "service_history",
-        devMode: isDevMode,
+        customerId,
         payload,
-        error
+        error: result.error
       });
-      setStatus(visibleError);
+      setStatus(result.error);
       return;
     }
 
-    onServiceSaved(data as ServiceHistory);
+    onServiceSaved(result.data);
     setStatus("Servico guardado com sucesso.");
     formElement.reset();
     router.refresh();
@@ -140,17 +131,6 @@ export function ServiceForm({
       </div>
     </form>
   );
-}
-
-function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
-  const parts = [
-    `Erro Supabase: ${error.message}`,
-    error.code ? `Codigo: ${error.code}` : null,
-    error.details ? `Detalhes: ${error.details}` : null,
-    error.hint ? `Hint: ${error.hint}` : null
-  ].filter(Boolean);
-
-  return parts.join(" | ");
 }
 
 function readStoredServices() {

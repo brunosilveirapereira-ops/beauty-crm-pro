@@ -2,9 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Plus, Save } from "lucide-react";
-import { isDevMode } from "@/lib/supabase";
+import { createServiceHistory } from "@/lib/service-history-actions";
 import type { Customer, Professional, VisitHistory } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
@@ -44,35 +43,25 @@ export function VisitHistoryManager({
       notes: String(form.get("notes") || "") || null
     };
 
-    console.info("[Beauty CRM Pro] Supabase conectado: gravando visita em public.service_history.", {
-      table: "service_history",
-      devMode: isDevMode,
-      customerId: customer.id,
-      payload
-    });
+    // Criacao: o salon_id e resolvido e validado no servidor
+    // (createServiceHistory), nunca no browser — garante que nunca existe
+    // um insert sem salon_id. Mesma Server Action usada por ServiceForm
+    // (/servicos), para nao duplicar a logica de insert em service_history.
+    const result = await createServiceHistory(payload);
 
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase
-      .from("service_history")
-      .insert(payload)
-      .select("*, professional_profile:professionals(id, name, commission_percentage, active)")
-      .single();
-
-    if (error) {
-      const visibleError = formatSupabaseError(error);
+    if (result.error !== null) {
       console.error("[Beauty CRM Pro] Erro ao gravar visita no Supabase:", {
         table: "service_history",
-        devMode: isDevMode,
         customerId: customer.id,
         payload,
-        error
+        error: result.error
       });
-      setStatus(visibleError);
+      setStatus(result.error);
       return;
     }
 
     setVisits((current) =>
-      [data as VisitHistory, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      [result.data as VisitHistory, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     );
     setStatus("Visita guardada com sucesso.");
     formElement.reset();
@@ -192,15 +181,4 @@ function Field({
       <input className="focus-ring mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 text-sm" name={name} type={type} required={required} />
     </label>
   );
-}
-
-function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
-  const parts = [
-    `Erro Supabase: ${error.message}`,
-    error.code ? `Codigo: ${error.code}` : null,
-    error.details ? `Detalhes: ${error.details}` : null,
-    error.hint ? `Hint: ${error.hint}` : null
-  ].filter(Boolean);
-
-  return parts.join(" | ");
 }
