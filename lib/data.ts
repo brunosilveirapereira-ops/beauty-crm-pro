@@ -214,12 +214,19 @@ export async function getAppointmentsByDate(date: string): Promise<Appointment[]
     return [];
   }
 
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo agenda de public.appointments.", { date });
+  const salonId = await getCurrentSalonId();
+  if (!salonId) {
+    console.info("[Beauty CRM Pro] Sem salao resolvido para o utilizador atual: a devolver agenda vazia.");
+    return [];
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo agenda de public.appointments.", { date, salonId });
 
   const { data, error } = await supabase
     .from("appointments")
     .select("*, customer:customers(id, name, phone, whatsapp)")
     .eq("appointment_date", date)
+    .eq("salon_id", salonId)
     .order("appointment_time", { ascending: true });
 
   if (error) {

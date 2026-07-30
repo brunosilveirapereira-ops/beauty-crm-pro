@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Pencil, Save, Trash2 } from "lucide-react";
+import { createAppointment, getAppointmentsByDateAction } from "@/lib/appointment-actions";
 import { isDevMode, isSupabaseConfigured } from "@/lib/supabase";
 import type { Appointment, Customer } from "@/lib/types";
 
@@ -46,22 +47,19 @@ export function AgendaManager({
 
     if (!isSupabaseConfigured) return;
 
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase
-      .from("appointments")
-      .select("*, customer:customers(id, name, phone, whatsapp)")
-      .eq("appointment_date", date)
-      .order("appointment_time", { ascending: true });
+    // Leitura filtrada por salon_id, resolvido no servidor (getAppointmentsByDateAction)
+    // — nunca consulta appointments sem esse filtro.
+    const result = await getAppointmentsByDateAction(date);
 
-    if (error) {
-      console.error("[Beauty CRM Pro] Erro ao carregar agenda:", { date, error });
-      setStatus(formatSupabaseError(error));
+    if (result.error !== null) {
+      console.error("[Beauty CRM Pro] Erro ao carregar agenda:", { date, error: result.error });
+      setStatus(result.error);
       return;
     }
 
     setAppointments((current) => {
       const otherDates = current.filter((appointment) => appointment.appointment_date !== date);
-      return [...otherDates, ...((data as Appointment[]) ?? [])];
+      return [...otherDates, ...result.data];
     });
   }
 
@@ -85,39 +83,74 @@ export function AgendaManager({
       return;
     }
 
+    if (editingAppointment) {
+      console.info("[Beauty CRM Pro] Supabase conectado: gravando marcacao em public.appointments.", {
+        table: "appointments",
+        devMode: isDevMode,
+        action: "update",
+        payload
+      });
+
+      const supabase = createClientComponentClient();
+      const { data, error } = await supabase
+        .from("appointments")
+        .update(payload)
+        .eq("id", editingAppointment.id)
+        .select("*, customer:customers(id, name, phone, whatsapp)")
+        .single();
+
+      if (error) {
+        console.error("[Beauty CRM Pro] Erro ao gravar marcacao:", {
+          table: "appointments",
+          devMode: isDevMode,
+          payload,
+          error
+        });
+        setStatus(formatSupabaseError(error));
+        return;
+      }
+
+      const savedAppointment = data as Appointment;
+      setAppointments((current) => {
+        const withoutCurrent = current.filter((appointment) => appointment.id !== savedAppointment.id);
+        return [...withoutCurrent, savedAppointment];
+      });
+      setSelectedDate(savedAppointment.appointment_date);
+      setEditingAppointment(null);
+      setStatus("Marcação atualizada com sucesso.");
+      formElement.reset();
+      return;
+    }
+
+    // Criacao: o salon_id e resolvido e validado no servidor (createAppointment),
+    // nunca no browser — garante que nunca existe um insert sem salon_id.
     console.info("[Beauty CRM Pro] Supabase conectado: gravando marcacao em public.appointments.", {
       table: "appointments",
       devMode: isDevMode,
-      action: editingAppointment ? "update" : "insert",
+      action: "insert",
       payload
     });
 
-    const supabase = createClientComponentClient();
-    const query = editingAppointment
-      ? supabase.from("appointments").update(payload).eq("id", editingAppointment.id).select("*, customer:customers(id, name, phone, whatsapp)").single()
-      : supabase.from("appointments").insert(payload).select("*, customer:customers(id, name, phone, whatsapp)").single();
+    const result = await createAppointment(payload);
 
-    const { data, error } = await query;
-
-    if (error) {
+    if (result.error !== null) {
       console.error("[Beauty CRM Pro] Erro ao gravar marcacao:", {
         table: "appointments",
         devMode: isDevMode,
         payload,
-        error
+        error: result.error
       });
-      setStatus(formatSupabaseError(error));
+      setStatus(result.error);
       return;
     }
 
-    const savedAppointment = data as Appointment;
     setAppointments((current) => {
-      const withoutCurrent = current.filter((appointment) => appointment.id !== savedAppointment.id);
-      return [...withoutCurrent, savedAppointment];
+      const withoutCurrent = current.filter((appointment) => appointment.id !== result.data.id);
+      return [...withoutCurrent, result.data];
     });
-    setSelectedDate(savedAppointment.appointment_date);
+    setSelectedDate(result.data.appointment_date);
     setEditingAppointment(null);
-    setStatus(editingAppointment ? "Marcação atualizada com sucesso." : "Marcação criada com sucesso.");
+    setStatus("Marcação criada com sucesso.");
     formElement.reset();
   }
 
