@@ -157,3 +157,41 @@ export async function updateAppointment(
 
   return { data: data as Appointment, error: null };
 }
+
+export type DeleteAppointmentResult = { error: string | null };
+
+/**
+ * Apaga uma marcacao existente, sempre restrita ao salon_id do utilizador
+ * autenticado. Corre no servidor (server action) pela mesma razao de
+ * updateAppointment(): getCurrentSalonId() so pode ser resolvido aqui. O
+ * filtro .eq("salon_id", salonId) e obrigatorio — sem ele, o id sozinho
+ * permitiria apagar uma marcacao de outro salao. O salon_id nunca e aceite
+ * vindo do browser: e sempre resolvido no servidor a partir da sessao
+ * autenticada.
+ */
+export async function deleteAppointment(appointmentId: string): Promise<DeleteAppointmentResult> {
+  if (!isSupabaseConfigured) {
+    return { error: "Supabase nao esta configurado." };
+  }
+
+  const supabase = createServerActionClient({ cookies });
+
+  const salonId = await getCurrentSalonId(supabase);
+
+  if (!salonId) {
+    return { error: "Nao foi possivel identificar o salao do utilizador atual. A marcacao nao foi apagada." };
+  }
+
+  const { error: deleteError } = await supabase
+    .from("appointments")
+    .delete()
+    .eq("id", appointmentId)
+    .eq("salon_id", salonId);
+
+  if (deleteError) {
+    const details = [deleteError.message, deleteError.code ? `Codigo: ${deleteError.code}` : null].filter(Boolean).join(" | ");
+    return { error: `Erro Supabase: ${details}` };
+  }
+
+  return { error: null };
+}

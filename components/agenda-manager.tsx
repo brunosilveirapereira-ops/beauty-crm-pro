@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Pencil, Save, Trash2 } from "lucide-react";
-import { createAppointment, getAppointmentsByDateAction, updateAppointment } from "@/lib/appointment-actions";
+import { createAppointment, deleteAppointment, getAppointmentsByDateAction, updateAppointment } from "@/lib/appointment-actions";
 import { isDevMode, isSupabaseConfigured } from "@/lib/supabase";
 import type { Appointment, Customer } from "@/lib/types";
 
@@ -159,12 +158,14 @@ export function AgendaManager({
       return;
     }
 
-    const supabase = createClientComponentClient();
-    const { error } = await supabase.from("appointments").delete().eq("id", appointment.id);
+    // Eliminacao: o salon_id e resolvido e validado no servidor
+    // (deleteAppointment), que filtra o delete por id E salon_id — nunca e
+    // possivel apagar uma marcacao de outro salao apenas pelo id.
+    const result = await deleteAppointment(appointment.id);
 
-    if (error) {
-      console.error("[Beauty CRM Pro] Erro ao apagar marcacao:", { appointmentId: appointment.id, error });
-      setStatus(formatSupabaseError(error));
+    if (result.error !== null) {
+      console.error("[Beauty CRM Pro] Erro ao apagar marcacao:", { appointmentId: appointment.id, error: result.error });
+      setStatus(result.error);
       return;
     }
 
@@ -332,15 +333,4 @@ function Field({
 function colorForProfessional(professional: string) {
   const index = professional.split("").reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % professionalColors.length;
   return professionalColors[index];
-}
-
-function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
-  const parts = [
-    `Erro Supabase: ${error.message}`,
-    error.code ? `Codigo: ${error.code}` : null,
-    error.details ? `Detalhes: ${error.details}` : null,
-    error.hint ? `Hint: ${error.hint}` : null
-  ].filter(Boolean);
-
-  return parts.join(" | ");
 }
