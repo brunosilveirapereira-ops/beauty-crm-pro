@@ -72,11 +72,18 @@ export async function getServices(): Promise<ServiceHistory[]> {
     return demoServices;
   }
 
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo servicos de public.service_history.");
+  const salonId = await getCurrentSalonId();
+  if (!salonId) {
+    console.info("[Beauty CRM Pro] Sem salao resolvido para o utilizador atual: a devolver lista vazia de servicos.");
+    return [];
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo servicos de public.service_history.", { salonId });
 
   const { data, error } = await supabase
     .from("service_history")
     .select("*, customer:customers(id, name, whatsapp), professional_profile:professionals(id, name, commission_percentage, active)")
+    .eq("salon_id", salonId)
     .order("date", { ascending: false });
 
   if (error) {
@@ -122,12 +129,19 @@ export async function getVisitHistory(customerId: string): Promise<VisitHistory[
     return demoServices.filter((service) => service.customer_id === customerId);
   }
 
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo visitas de public.service_history.", { customerId });
+  const salonId = await getCurrentSalonId();
+  if (!salonId) {
+    console.info("[Beauty CRM Pro] Sem salao resolvido para o utilizador atual: a devolver historico de visitas vazio.");
+    return [];
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo visitas de public.service_history.", { customerId, salonId });
 
   const { data, error } = await supabase
     .from("service_history")
     .select("*, professional_profile:professionals(id, name, commission_percentage, active)")
     .eq("customer_id", customerId)
+    .eq("salon_id", salonId)
     .order("date", { ascending: false });
 
   if (error) {
