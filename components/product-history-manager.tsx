@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { PackagePlus, Save } from "lucide-react";
-import { isDevMode } from "@/lib/supabase";
+import { createProductHistory } from "@/lib/product-history-actions";
 import type { Customer, ProductHistory } from "@/lib/types";
 
 type ProductPayload = Omit<ProductHistory, "id" | "created_at">;
@@ -33,31 +32,24 @@ export function ProductHistoryManager({
       observations: String(form.get("observations") || "") || null
     };
 
-    console.info("[Beauty CRM Pro] Supabase conectado: gravando produto em public.product_history.", {
-      table: "product_history",
-      devMode: isDevMode,
-      customerId: customer.id,
-      payload
-    });
+    // Criacao: o salon_id e resolvido e validado no servidor
+    // (createProductHistory), nunca no browser — garante que nunca existe
+    // um insert sem salon_id.
+    const result = await createProductHistory(payload);
 
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase.from("product_history").insert(payload).select("*").single();
-
-    if (error) {
-      const visibleError = formatSupabaseError(error);
+    if (result.error !== null) {
       console.error("[Beauty CRM Pro] Erro ao gravar produto no Supabase:", {
         table: "product_history",
-        devMode: isDevMode,
         customerId: customer.id,
         payload,
-        error
+        error: result.error
       });
-      setStatus(visibleError);
+      setStatus(result.error);
       return;
     }
 
     setProducts((current) =>
-      [data as ProductHistory, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      [result.data as ProductHistory, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     );
     setStatus("Produto guardado com sucesso.");
     formElement.reset();
@@ -163,15 +155,4 @@ function Field({
       <input className="focus-ring mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 text-sm" name={name} type={type} required={required} />
     </label>
   );
-}
-
-function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
-  const parts = [
-    `Erro Supabase: ${error.message}`,
-    error.code ? `Codigo: ${error.code}` : null,
-    error.details ? `Detalhes: ${error.details}` : null,
-    error.hint ? `Hint: ${error.hint}` : null
-  ].filter(Boolean);
-
-  return parts.join(" | ");
 }
