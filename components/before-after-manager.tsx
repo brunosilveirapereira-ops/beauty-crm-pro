@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Camera, ChevronLeft, ChevronRight, ImageOff, ImagePlus, Save, X } from "lucide-react";
-import { isDevMode } from "@/lib/supabase";
+import { createBeforeAfterHistory } from "@/lib/before-after-actions";
 import type { BeforeAfterHistory, Customer } from "@/lib/types";
 
 const BUCKET = "customer-transformations";
@@ -116,23 +116,25 @@ export function BeforeAfterManager({
         observations: String(form.get("observations") || "") || null
       };
 
-      console.info("[Beauty CRM Pro] Supabase conectado: gravando transformação em public.before_after_history.", {
-        table: "before_after_history",
-        devMode: isDevMode,
-        customerId: customer.id,
-        payload
-      });
+      // Criacao: o salon_id e resolvido e validado no servidor
+      // (createBeforeAfterHistory), nunca no browser — garante que nunca
+      // existe um insert sem salon_id. O upload das imagens continua a
+      // ser feito diretamente no browser, antes desta chamada.
+      const result = await createBeforeAfterHistory(payload);
 
-      const { data, error } = await supabase
-        .from("before_after_history")
-        .insert(payload)
-        .select("*")
-        .single();
-
-      if (error) { setStatus(formatSupabaseError(error)); return; }
+      if (result.error !== null) {
+        console.error("[Beauty CRM Pro] Erro ao gravar transformação no Supabase:", {
+          table: "before_after_history",
+          customerId: customer.id,
+          payload,
+          error: result.error
+        });
+        setStatus(result.error);
+        return;
+      }
 
       setEntries((current) =>
-        [data as BeforeAfterHistory, ...current].sort(
+        [result.data as BeforeAfterHistory, ...current].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         )
       );
@@ -616,18 +618,4 @@ function Field({
       />
     </label>
   );
-}
-
-// ============================================================
-// Utilitários
-// ============================================================
-
-function formatSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }) {
-  const parts = [
-    `Erro Supabase: ${error.message}`,
-    error.code ? `Codigo: ${error.code}` : null,
-    error.details ? `Detalhes: ${error.details}` : null,
-    error.hint ? `Hint: ${error.hint}` : null
-  ].filter(Boolean);
-  return parts.join(" | ");
 }
