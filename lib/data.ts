@@ -212,12 +212,19 @@ export async function getBeforeAfterHistory(customerId: string): Promise<BeforeA
     return [];
   }
 
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo antes e depois de public.before_after_history.", { customerId });
+  const salonId = await getCurrentSalonId();
+  if (!salonId) {
+    console.info("[Beauty CRM Pro] Sem salao resolvido para o utilizador atual: a devolver antes e depois vazio.");
+    return [];
+  }
+
+  console.info("[Beauty CRM Pro] Supabase conectado: lendo antes e depois de public.before_after_history.", { customerId, salonId });
 
   const { data, error } = await supabase
     .from("before_after_history")
     .select("*")
     .eq("customer_id", customerId)
+    .eq("salon_id", salonId)
     .order("date", { ascending: false });
 
   if (error) {
