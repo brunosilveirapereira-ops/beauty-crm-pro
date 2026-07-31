@@ -41,22 +41,9 @@ export async function createCustomer(payload: NewCustomerInput): Promise<CreateC
   // para garantir que ambos correm sob exatamente a mesma sessao.
   const supabase = createServerActionClient({ cookies });
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
   const salonId = await getCurrentSalonId(supabase);
 
   const insertPayload = { ...payload, salon_id: salonId };
-
-  // ===== LOGS TEMPORARIOS DE DIAGNOSTICO — remover depois de encontrar a causa =====
-  // So aparecem no terminal do servidor (nunca no browser). Colocados
-  // imediatamente antes do insert, sem alterar nenhuma logica/ordem atual.
-  console.info("[DEBUG createCustomer] user.id:", user?.id ?? null);
-  console.info("[DEBUG createCustomer] salonId resolvido:", salonId);
-  console.info("[DEBUG createCustomer] payload recebido do formulario:", payload);
-  console.info("[DEBUG createCustomer] objeto final que vai para o insert:", insertPayload);
-  // ===== FIM DOS LOGS TEMPORARIOS =====
 
   if (!salonId) {
     return {
