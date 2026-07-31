@@ -15,7 +15,7 @@ export type Customer = {
 export type ServiceHistory = {
   id: string;
   customer_id: string;
-  professional_id?: string | null;
+  professional_id: string | null;
   date: string;
   service: string;
   professional: string | null;
