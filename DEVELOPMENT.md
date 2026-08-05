@@ -89,6 +89,7 @@ Estas funcionalidades já estão decididas, mas serão implementadas na fase ade
 - Pesquisa global.
 - Pesquisa de clientes por nome, telefone/WhatsApp e Instagram.
 - Melhorias de UX após conclusão dos módulos principais.
+- Reconstruir Ficha Técnica de Coloração com arquitetura multi-tenant, salon_id, RLS, Server Actions e registo completo da fórmula utilizada.
 
 ## Definição de tarefa concluída
 Uma tarefa só é considerada concluída quando:

@@ -47,17 +47,6 @@ export type CommissionReportItem = {
   salonValue: number;
 };
 
-export type ColorHistory = {
-  id: string;
-  customer_id: string;
-  color_date: string;
-  dye_brand: string;
-  color_used: string;
-  oxidant: string | null;
-  notes: string | null;
-  created_at: string;
-};
-
 export type ProductHistory = {
   id: string;
   customer_id: string;

@@ -4,7 +4,7 @@ import { daysSince, isAtRisk } from "./risk";
 import { getCurrentSalonId } from "./salon";
 import { getSupabaseServerClient } from "./supabase-server";
 import { isSupabaseConfigured } from "./supabase";
-import type { Appointment, BeforeAfterHistory, ColorHistory, Customer, DashboardStats, ProductHistory, Professional, ServiceHistory, VisitHistory } from "./types";
+import type { Appointment, BeforeAfterHistory, Customer, DashboardStats, ProductHistory, Professional, ServiceHistory, VisitHistory } from "./types";
 
 export { daysSince, isAtRisk };
 
@@ -150,29 +150,6 @@ export async function getVisitHistory(customerId: string): Promise<VisitHistory[
   }
 
   return data as VisitHistory[];
-}
-
-export async function getColorHistory(customerId: string): Promise<ColorHistory[]> {
-  const supabase = getSupabaseServerClient();
-  if (!isSupabaseConfigured || !supabase) {
-    console.info("[Beauty CRM Pro] Modo local: sem historico de coloracao Supabase.");
-    return [];
-  }
-
-  console.info("[Beauty CRM Pro] Supabase conectado: lendo coloracoes de public.color_history.", { customerId });
-
-  const { data, error } = await supabase
-    .from("color_history")
-    .select("*")
-    .eq("customer_id", customerId)
-    .order("color_date", { ascending: false });
-
-  if (error) {
-    console.error("[Beauty CRM Pro] Erro ao ler historico de coloracao no Supabase:", error);
-    return [];
-  }
-
-  return data as ColorHistory[];
 }
 
 export async function getProductHistory(customerId: string): Promise<ProductHistory[]> {
